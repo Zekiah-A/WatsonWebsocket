@@ -10,7 +10,7 @@ namespace WatsonWebsocket;
 /// </summary>
 public class ClientMetadata
 { 
-    public string? IpPort => ip + ":" + port;
+    public string IpPort => ip + ":" + port;
 
     private readonly string ip;
     private readonly int port;
