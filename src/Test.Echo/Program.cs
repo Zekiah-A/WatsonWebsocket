@@ -29,21 +29,21 @@ namespace Test.Echo
                  
                 server.ClientConnected += (s, e) =>
                 {
-                    clientIpPort = e.IpPort;
-                    Console.WriteLine(header + "client connected: " + e.IpPort);
+                    clientIpPort = e.Client.IpPort;
+                    Console.WriteLine(header + "client connected: " + e.Client.IpPort);
                 };
 
                 server.ClientDisconnected += (s, e) =>
                 {
                     clientIpPort = null;
-                    Console.WriteLine(header + "client disconnected: " + e.IpPort);
+                    Console.WriteLine(header + "client disconnected: " + e.Client.IpPort);
                 };
 
                 server.MessageReceived += async (s, e) =>
                 {
                     // echo it back
                     serverStats.AddRecv(e.Data.Count);
-                    await server.SendAsync(e, e.Data, null);
+                    await server.SendAsync(e.Client, e.Data);
                     serverStats.AddSent(e.Data.Count);
                 };
 
@@ -70,7 +70,7 @@ namespace Test.Echo
                 for (int i = 0; i < serverSendMessageCount; i++)
                 {
                     byte[] msgData = Encoding.UTF8.GetBytes(RandomString(serverMessageLength));
-                    server.SendAsync(clientIpPort, msgData).Wait();
+                    server.SendAsync(server.GetClientFromIpPort(clientIpPort), msgData).Wait();
                     serverStats.AddSent(msgData.Length);
                 }
 
@@ -113,66 +113,65 @@ namespace Test.Echo
 
         static async void ClientTask()
         {
-            string header = "[Client] "; 
+            string header = "[Client] ";
 
-            using (WatsonWsClient client = new WatsonWsClient(hostname, port, false))
+            using WatsonWsClient client = new WatsonWsClient(hostname, port, false);
+
+            #region Start-Client
+
+            client.ServerConnected += (s, e) =>
+            { 
+                Console.WriteLine(header + "connected to " + hostname + ":" + port);
+            };
+
+            client.ServerDisconnected += (s, e) =>
             {
-                #region Start-Client
+                Console.WriteLine(header + "disconnected from " + hostname + ":" + port);
+            };
 
-                client.ServerConnected += (s, e) =>
-                { 
-                    Console.WriteLine(header + "connected to " + hostname + ":" + port);
-                };
+            client.MessageReceived += (s, e) =>
+            {
+                clientStats.AddRecv(e.Data.Count);
+            };
 
-                client.ServerDisconnected += (s, e) =>
-                {
-                    Console.WriteLine(header + "disconnected from " + hostname + ":" + port);
-                };
+            client.Logger = Logger;
+            client.Start();
+            Console.WriteLine(header + "started");
 
-                client.MessageReceived += (s, e) =>
-                {
-                    clientStats.AddRecv(e.Data.Count);
-                };
+            #endregion
 
-                client.Logger = Logger;
-                client.Start();
-                Console.WriteLine(header + "started");
+            #region Wait-for-Messages
 
-                #endregion
+            while (clientStats.MsgRecv < serverSendMessageCount) 
+            {
+                Task.Delay(1000).Wait();
+                Console.WriteLine(header + "waiting for server messages");
+            };
 
-                #region Wait-for-Messages
+            Console.WriteLine(header + "server messages received");
+            #endregion
 
-                while (clientStats.MsgRecv < serverSendMessageCount) 
-                {
-                    Task.Delay(1000).Wait();
-                    Console.WriteLine(header + "waiting for server messages");
-                };
+            #region Send-Messages
 
-                Console.WriteLine(header + "server messages received");
-                #endregion
+            Console.WriteLine(header + "sending messages to server");
 
-                #region Send-Messages
-
-                Console.WriteLine(header + "sending messages to server");
-
-                for (int i = 0; i < clientSendMessageCount; i++)
-                {
-                    byte[] msgData = Encoding.UTF8.GetBytes(RandomString(clientMessageLength));
-                    await client.SendAsync(msgData);
-                    clientStats.AddSent(msgData.Length);
-                }
-
-                while (clientStats.MsgRecv < (clientSendMessageCount + serverSendMessageCount))
-                {
-                    Console.WriteLine(header + "waiting for server echo messages");
-                    Task.Delay(1000).Wait();
-                }
-
-                Console.WriteLine(header + "finished");
-                clientIpPort = null;
-
-                #endregion 
+            for (int i = 0; i < clientSendMessageCount; i++)
+            {
+                byte[] msgData = Encoding.UTF8.GetBytes(RandomString(clientMessageLength));
+                await client.SendAsync(msgData);
+                clientStats.AddSent(msgData.Length);
             }
+
+            while (clientStats.MsgRecv < (clientSendMessageCount + serverSendMessageCount))
+            {
+                Console.WriteLine(header + "waiting for server echo messages");
+                Task.Delay(1000).Wait();
+            }
+
+            Console.WriteLine(header + "finished");
+            clientIpPort = null;
+
+            #endregion
         }
 
         static string RandomString(int numChar)

@@ -540,17 +540,11 @@ namespace WatsonWebsocket
 
         private void SetInvalidCertificateAcceptance()
         {
-#if NETFRAMEWORK
-            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
-#endif
-
-#if NET || NETSTANDARD || NETCOREAPP
             if (_ClientWs.State == WebSocketState.Open)
             {
                 _ClientWs.Options.RemoteCertificateValidationCallback +=
                     (message, certificate, chain, sslPolicyErrors) => true;
             }
-#endif
         }
 
         private void AfterConnect(Task task)
@@ -645,7 +639,7 @@ namespace WatsonWebsocket
                 }
             }
 
-            return new MessageReceivedEventArgs(_ServerIpPort, data, result.MessageType);
+            return new ServerMessageReceivedEventArgs(_ServerIpPort, data, result.MessageType);
         }
 
         private async Task<bool> MessageWriteAsync(ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken token)

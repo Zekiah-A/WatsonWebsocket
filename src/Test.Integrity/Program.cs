@@ -12,20 +12,16 @@ namespace Test.Integrity
         static int numClients = 5;
         static int messagesPerClient = 100;
         static int msgLength = 4096;
-        static byte[] msgData = null;
         static int sendDelay = 100;
+        static byte[] msgData;
 
         static string hostname = "localhost";
         static int port = 8000;
-        static WatsonWsServer server = null;
-        static bool serverReady = false;
-
-        static readonly object clientsLock = new object();
-        static List<string> clients = new List<string>();
-
-        static Statistics serverStats = new Statistics();
-        static readonly object clientStatsLock = new object();
-        static List<Statistics> clientStats = new List<Statistics>();
+        static WatsonWsServer server;
+        static bool serverReady;
+        
+        static Statistics serverStats = new();
+        static List<Statistics> clientStats = new();
          
         static void Main(string[] args)
         {
@@ -40,20 +36,13 @@ namespace Test.Integrity
 
                 server.ClientConnected += (s, e) =>
                 {
-                    Console.WriteLine("Client connected: " + e.IpPort);
-                    lock (clientsLock)
-                    {
-                        clients.Add(e.IpPort);
-                    }
+                    Console.WriteLine("Client connected: " + e.Client.IpPort);
+                    
                 };
 
                 server.ClientDisconnected += (s, e) =>
                 { 
-                    Console.WriteLine("*** Client disconnected: " + e.IpPort);
-                    lock (clientsLock)
-                    {
-                        if (clients.Contains(e.IpPort)) clients.Remove(e.IpPort);
-                    }
+                    Console.WriteLine("*** Client disconnected: " + e.Client.IpPort);
                 };
 
                 server.MessageReceived += (s, e) =>
@@ -79,10 +68,7 @@ namespace Test.Integrity
                 {
                     Task.Delay(1000).Wait();
                     int connected = 0;
-                    lock (clientsLock)
-                    {
-                        connected = clients.Count;
-                    }
+                    connected = server.Clients.Count;
                     if (connected == numClients) break;
                     Console.WriteLine(connected + " of " + numClients + " connected, waiting");
                 }
@@ -98,7 +84,7 @@ namespace Test.Integrity
                 {
                     for (int j = 0; j < numClients; j++)
                     {
-                        server.SendAsync(clients[j], msgData).Wait();
+                        server.SendAsync(server.Clients[i], msgData).Wait();
                         serverStats.AddSent(msgData.Length);
                     }
                 }
@@ -111,13 +97,10 @@ namespace Test.Integrity
                 {
                     Task.Delay(5000).Wait();
                     int remaining = 0;
-                    lock (clientsLock)
-                    {
-                        remaining = clients.Count;
-                        if (remaining < 1) break;
-                        Console.WriteLine(DateTime.Now.ToUniversalTime().ToString("HH:mm:ss.ffffff") + " waiting for " + remaining + " clients: ");
-                        foreach (string curr in clients) Console.WriteLine("| " + curr);
-                    }
+                    remaining = server.Clients.Count;
+                    if (remaining < 1) break;
+                    Console.WriteLine(DateTime.Now.ToUniversalTime().ToString("HH:mm:ss.ffffff") + " waiting for " + remaining + " clients: ");
+                    foreach (ClientMetadata curr in server.Clients) Console.WriteLine("| " + curr.IpPort);
                 }
 
                 #endregion
@@ -127,7 +110,7 @@ namespace Test.Integrity
                 Console.WriteLine("");
                 Console.WriteLine("");
                 Console.WriteLine("Server statistics:");
-                Console.WriteLine("  " + serverStats.ToString());
+                Console.WriteLine("  " + serverStats);
                 Console.WriteLine("");
                 Console.WriteLine("Client statistics");
                 foreach (Statistics stats in clientStats) Console.WriteLine("  " + stats.ToString());
@@ -146,68 +129,64 @@ namespace Test.Integrity
         {
             Statistics stats = new Statistics();
 
-            using (WatsonWsClient client = new WatsonWsClient(hostname, port, false))
+            using WatsonWsClient client = new WatsonWsClient(hostname, port, false);
+
+            #region Start-Client
+
+            client.ServerConnected += (s, e) =>
             {
-                #region Start-Client
+                Console.WriteLine("Client detected connection to " + hostname + ":" + port);
+            };
 
-                client.ServerConnected += (s, e) =>
-                {
-                    Console.WriteLine("Client detected connection to " + hostname + ":" + port);
-                };
+            client.ServerDisconnected += (s, e) =>
+            {
+                Console.WriteLine("Client disconnected from " + hostname + ":" + port);
+            };
 
-                client.ServerDisconnected += (s, e) =>
-                {
-                    Console.WriteLine("Client disconnected from " + hostname + ":" + port);
-                };
+            client.MessageReceived += (s, e) =>
+            {
+                stats.AddRecv(e.Data.Count);
+            };
 
-                client.MessageReceived += (s, e) =>
-                {
-                    stats.AddRecv(e.Data.Count);
-                };
+            // client.Logger = Logger;
+            client.Start();
 
-                // client.Logger = Logger;
-                client.Start();
+            #endregion
 
-                #endregion
+            #region Wait-for-Server-Ready
 
-                #region Wait-for-Server-Ready
-
-                while (!serverReady)
-                {
-                    Console.WriteLine("Client waiting for server...");
-                    Task.Delay(2500).Wait();
-                }
-
-                Console.WriteLine("Client detected server ready!");
-
-                #endregion
-
-                #region Send-Messages-to-Server
-
-                for (int i = 0; i < messagesPerClient; i++)
-                {
-                    Task.Delay(sendDelay).Wait();
-                    client.SendAsync(msgData).Wait();
-                    stats.AddSent(msgData.Length);
-                }
-
-                #endregion
-
-                #region Wait-for-Server-Messages
-
-                while (stats.MsgRecv < messagesPerClient)
-                {
-                    Task.Delay(1000).Wait();
-                }
-
-                Console.WriteLine("Client exiting: " + stats.ToString());
-                lock (clientStatsLock)
-                {
-                    clientStats.Add(stats);
-                }
-
-                #endregion
+            while (!serverReady)
+            {
+                Console.WriteLine("Client waiting for server...");
+                Task.Delay(2500).Wait();
             }
+
+            Console.WriteLine("Client detected server ready!");
+
+            #endregion
+
+            #region Send-Messages-to-Server
+
+            for (int i = 0; i < messagesPerClient; i++)
+            {
+                Task.Delay(sendDelay).Wait();
+                client.SendAsync(msgData).Wait();
+                stats.AddSent(msgData.Length);
+            }
+
+            #endregion
+
+            #region Wait-for-Server-Messages
+
+            while (stats.MsgRecv < messagesPerClient)
+            {
+                Task.Delay(1000).Wait();
+            }
+
+            Console.WriteLine("Client exiting: " + stats.ToString());
+            clientStats.Add(stats);
+
+            #endregion
         }
 
         static string RandomString(int numChar)

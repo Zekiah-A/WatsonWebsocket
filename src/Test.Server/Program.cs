@@ -103,23 +103,27 @@ namespace Test.Server
                         if (splitInput.Length != 2) break;
                         splitInput = splitInput[1].Split(new string[] { " " }, 3, StringSplitOptions.None);
                         if (splitInput.Length != 3) break;
-                        if (splitInput[0].Equals("last")) ipPort = _LastIpPort;
-                        else ipPort = splitInput[0];
+                        ipPort = splitInput[0].Equals("last") ? _LastIpPort : splitInput[0];
                         if (String.IsNullOrEmpty(splitInput[2])) break;
-                        if (splitInput[1].Equals("text")) success = _Server.SendAsync(ipPort, splitInput[2]).Result;
+                        
+                        ClientMetadata? _client = _Server.GetClientFromIpPort(ipPort);
+                        if (_client is null) return;
+                        
+                        if (splitInput[1].Equals("text")) success = _Server.SendAsync(_client, splitInput[2]).Result;
                         else if (splitInput[1].Equals("bytes"))
                         {
                             byte[] data = Encoding.UTF8.GetBytes(splitInput[2]);
-                            success = _Server.SendAsync(ipPort, data).Result;
+                            success = _Server.SendAsync(_client, data).Result;
                         }
                         else break;
+                        
                         if (!success) Console.WriteLine("Failed");
                         else Console.WriteLine("Success");
                         break;
 
                     case "kill":
                         if (splitInput.Length != 2) break;
-                        _Server.DisconnectClient(splitInput[1]);
+                        _Server.DisconnectClient(_Server.GetClientFromIpPort(splitInput[1]));
                         break;
 
                     default:
@@ -287,8 +291,8 @@ namespace Test.Server
          
         static void ClientConnected(object sender, ClientConnectedEventArgs args) 
         {
-            Console.WriteLine("Client " + args.IpPort + " connected using URL " + args.HttpRequest.RawUrl);
-            _LastIpPort = args.IpPort;
+            Console.WriteLine("Client " + args.Client.IpPort + " connected using URL " + args.HttpRequest.RawUrl);
+            _LastIpPort = args.Client.IpPort;
 
             if (args.HttpRequest.Cookies != null && args.HttpRequest.Cookies.Count > 0)
             {
@@ -302,14 +306,14 @@ namespace Test.Server
 
         static void ClientDisconnected(object sender, ClientDisconnectedEventArgs args)
         {
-            Console.WriteLine("Client disconnected: " + args.IpPort);
+            Console.WriteLine("Client disconnected: " + args.Client.IpPort);
         }
 
         static void MessageReceived(object sender, MessageReceivedEventArgs args)
         {
             string msg = "(null)";
             if (args.Data != null && args.Data.Count > 0) msg = Encoding.UTF8.GetString(args.Data.Array, 0, args.Data.Count);
-            Console.WriteLine(args.MessageType.ToString() + " from " + args.IpPort + ": " + msg);
+            Console.WriteLine(args.MessageType + " from " + args.Client.IpPort + ": " + msg);
         }
 
         static void HttpHandler(HttpListenerContext ctx)

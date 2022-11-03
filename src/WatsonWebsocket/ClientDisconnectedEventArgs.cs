@@ -13,9 +13,9 @@ namespace WatsonWebsocket
         #region Public-Members
 
         /// <summary>
-        /// The IP:port of the client.
+        /// The sender client instance.
         /// </summary>
-        public string IpPort { get; }
+        public ClientMetadata Client { get; }
 
         #endregion
 
@@ -25,9 +25,9 @@ namespace WatsonWebsocket
 
         #region Constructors-and-Factories
 
-        internal ClientDisconnectedEventArgs(string ipPort)
+        internal ClientDisconnectedEventArgs(ClientMetadata client)
         {
-            IpPort = ipPort;
+            Client = client;
         }
 
         #endregion

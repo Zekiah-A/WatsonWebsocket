@@ -13,9 +13,9 @@ namespace WatsonWebsocket
         #region Public-Members
 
         /// <summary>
-        /// The IP:port of the client.
+        /// The sender client instance.
         /// </summary>
-        public string IpPort { get; }
+        public ClientMetadata Client { get; }
 
         /// <summary>
         /// The HttpListenerRequest from the client.  Helpful for accessing HTTP request related metadata such as the querystring.
@@ -30,9 +30,9 @@ namespace WatsonWebsocket
 
         #region Constructors-and-Factories
 
-        internal ClientConnectedEventArgs(string ipPort, HttpListenerRequest http)
+        internal ClientConnectedEventArgs(ClientMetadata client, HttpListenerRequest http)
         {
-            IpPort = ipPort;
+            Client = client;
             HttpRequest = http;
         }
 

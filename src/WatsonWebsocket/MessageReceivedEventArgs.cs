@@ -14,14 +14,14 @@ namespace WatsonWebsocket
         #region Public-Members
 
         /// <summary>
-        /// The IP:port of the sender.
+        /// The sender client instance.
         /// </summary>
-        public string IpPort { get; }
+        public ClientMetadata Client { get; }
 
         /// <summary>
         /// The data received.
         /// </summary>
-        public ArraySegment<byte> Data { get; }
+        public ArraySegment<byte> Data { get; set; }
 
         /// <summary>
         /// The type of payload included in the message (Binary or Text).
@@ -36,13 +36,13 @@ namespace WatsonWebsocket
 
         #region Constructors-and-Factories
 
-        internal MessageReceivedEventArgs(string ipPort, ArraySegment<byte> data, WebSocketMessageType messageType)
+        internal MessageReceivedEventArgs(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType messageType)
         {
-            IpPort = ipPort;
+            Client = client;
             Data = data;
             MessageType = messageType;
         }
-
+        
         #endregion
 
         #region Public-Methods

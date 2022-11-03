@@ -369,6 +369,11 @@ namespace WatsonWebsocket
                 client.Ws.Dispose();
             }
         }
+        
+        public ClientMetadata? GetClientFromIpPort(string ipPort)
+        {
+            return _Clients.FirstOrDefault(target => target.IpPort == ipPort);
+        }
 
         /// <summary>
         /// Retrieve the awaiter.
@@ -491,7 +496,7 @@ namespace WatsonWebsocket
                              
                             _Clients.Add(md);
 
-                            ClientConnected?.Invoke(this, new ClientConnectedEventArgs(md.IpPort, ctx.Request));
+                            ClientConnected?.Invoke(this, new ClientConnectedEventArgs(md, ctx.Request));
                             await Task.Run(() => DataReceiver(md), token);
                              
                         }, token);
@@ -574,7 +579,7 @@ namespace WatsonWebsocket
             }
             finally
             { 
-                ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(md.IpPort));
+                ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(md));
                 md.Ws.Dispose();
                 Logger?.Invoke(header + "disconnected");
                 _Clients.Remove(md);
@@ -616,7 +621,7 @@ namespace WatsonWebsocket
 
                 if (result.EndOfMessage)
                 {
-                    return new MessageReceivedEventArgs(md.IpPort, new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length), result.MessageType);
+                    return new MessageReceivedEventArgs(md, new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length), result.MessageType);
                 }
             }
         }
