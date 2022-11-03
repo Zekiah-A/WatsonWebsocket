@@ -78,7 +78,7 @@ namespace WatsonWebsocket
 
         #region Private-Members
 
-        private DateTime _StartTime = DateTime.Now.ToUniversalTime();
+        private readonly DateTime _StartTime = DateTime.Now.ToUniversalTime();
         private long _ReceivedBytes;
         private long _ReceivedMessages;
         private long _SentBytes;
@@ -106,7 +106,7 @@ namespace WatsonWebsocket
         /// <returns></returns>
         public override string ToString()
         {
-            string ret =
+            var ret =
                 "--- Statistics ---" + Environment.NewLine +
                 "    Started     : " + _StartTime + Environment.NewLine +
                 "    Uptime      : " + UpTime + Environment.NewLine +

@@ -48,10 +48,10 @@
 
         private readonly object _StatsLock = new object();
 
-        private long _MsgSent = 0;
-        private long _MsgRecv = 0;
-        private long _BytesSent = 0;
-        private long _BytesRecv = 0;
+        private long _MsgSent;
+        private long _MsgRecv;
+        private long _BytesSent;
+        private long _BytesRecv;
 
         public Statistics()
         {

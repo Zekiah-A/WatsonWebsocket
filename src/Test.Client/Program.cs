@@ -7,28 +7,28 @@ using WatsonWebsocket;
 
 namespace Test.Client
 {
-    class Program
+    internal class Program
     {
-        static string _ServerIp = "";
-        static int _ServerPort = 0;
-        static bool _Ssl = false;
-        static bool _AcceptInvalidCertificates = true;
-        static WatsonWsClient _Client = null;
+        private static string serverIp = "";
+        private static int serverPort;
+        private static bool ssl;
+        private static readonly bool AcceptInvalidCertificates = true;
+        private static WatsonWsClient client;
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            _ServerIp = InputString("Server IP:", "localhost", true);
-            _ServerPort = InputInteger("Server port:", 9000, true, true);
-            _Ssl = InputBoolean("Use SSL:", false);
+            serverIp = InputString("Server IP:", "localhost", true);
+            serverPort = InputInteger("Server port:", 9000, true, true);
+            ssl = InputBoolean("Use SSL:", false);
 
             InitializeClient();
 
-            bool runForever = true;
+            var runForever = true;
             while (runForever)
             {
                 Console.Write("Command [? for help]: ");
-                string userInput = Console.ReadLine();
-                if (String.IsNullOrEmpty(userInput)) continue;
+                var userInput = Console.ReadLine();
+                if (string.IsNullOrEmpty(userInput)) continue;
 
                 switch (userInput)
                 {
@@ -60,24 +60,24 @@ namespace Test.Client
                     case "send text":
                         Console.Write("Data: ");
                         userInput = Console.ReadLine();
-                        if (String.IsNullOrEmpty(userInput)) break;
-                        if (!_Client.SendAsync(userInput).Result) Console.WriteLine("Failed");
+                        if (string.IsNullOrEmpty(userInput)) break;
+                        if (!client.SendAsync(userInput).Result) Console.WriteLine("Failed");
                         else Console.WriteLine("Success");
                         break;
 
                     case "send bytes":
                         Console.Write("Data: ");
                         userInput = Console.ReadLine();
-                        if (String.IsNullOrEmpty(userInput)) break;
-                        if (!_Client.SendAsync(Encoding.UTF8.GetBytes(userInput)).Result) Console.WriteLine("Failed");
+                        if (string.IsNullOrEmpty(userInput)) break;
+                        if (!client.SendAsync(Encoding.UTF8.GetBytes(userInput)).Result) Console.WriteLine("Failed");
                         break;
 
                     case "sync text":
                         Console.Write("Data: ");
                         userInput = Console.ReadLine();
-                        if (String.IsNullOrEmpty(userInput)) break;
-                        string resultStr = _Client.SendAndWaitAsync(userInput).Result;
-                        if (!String.IsNullOrEmpty(resultStr))
+                        if (string.IsNullOrEmpty(userInput)) break;
+                        var resultStr = client.SendAndWaitAsync(userInput).Result;
+                        if (!string.IsNullOrEmpty(resultStr))
                         {
                             Console.WriteLine("Response: " + resultStr);
                         }
@@ -90,8 +90,8 @@ namespace Test.Client
                     case "sync bytes":
                         Console.Write("Data: ");
                         userInput = Console.ReadLine();
-                        if (String.IsNullOrEmpty(userInput)) break;
-                        var resultBytes = _Client.SendAndWaitAsync(Encoding.UTF8.GetBytes(userInput)).Result;
+                        if (string.IsNullOrEmpty(userInput)) break;
+                        var resultBytes = client.SendAndWaitAsync(Encoding.UTF8.GetBytes(userInput)).Result;
                         if (resultBytes != null && resultBytes.Count > 0)
                         {
                             Console.WriteLine("Response: " + Encoding.UTF8.GetString(resultBytes.Array, 0, resultBytes.Count));
@@ -103,20 +103,20 @@ namespace Test.Client
                         break;
 
                     case "stats":
-                        Console.WriteLine(_Client.Stats.ToString());
+                        Console.WriteLine(client.Stats.ToString());
                         break;
 
                     case "status":
-                        if (_Client == null) Console.WriteLine("Connected: False (null)");
-                        else Console.WriteLine("Connected: " + _Client.Connected);
+                        if (client == null) Console.WriteLine("Connected: False (null)");
+                        else Console.WriteLine("Connected: " + client.Connected);
                         break;
 
                     case "dispose":
-                        _Client.Dispose();
+                        client.Dispose();
                         break;
 
                     case "connect":
-                        if (_Client != null && _Client.Connected)
+                        if (client != null && client.Connected)
                         {
                             Console.WriteLine("Already connected");
                         }
@@ -131,7 +131,7 @@ namespace Test.Client
                         break;
 
                     case "close":
-                        _Client.Stop();
+                        client.Stop();
                         break;
 
                     default:
@@ -140,39 +140,39 @@ namespace Test.Client
             }
         }
 
-        static void InitializeClient()
+        private static void InitializeClient()
         {
-            if (_Client != null) _Client.Dispose();
+            if (client != null) client.Dispose();
 
             // original constructor
             // _Client = new WatsonWsClient(_ServerIp, _ServerPort, _Ssl);
 
             // URI-based constructor
-            if (_Ssl) _Client = new WatsonWsClient(new Uri("wss://" + _ServerIp + ":" + _ServerPort));
-            else _Client = new WatsonWsClient(new Uri("ws://" + _ServerIp + ":" + _ServerPort));
+            if (ssl) client = new WatsonWsClient(new Uri("wss://" + serverIp + ":" + serverPort));
+            else client = new WatsonWsClient(new Uri("ws://" + serverIp + ":" + serverPort));
 
-            _Client.AcceptInvalidCertificates = _AcceptInvalidCertificates;
-            _Client.ServerConnected += ServerConnected;
-            _Client.ServerDisconnected += ServerDisconnected;
-            _Client.MessageReceived += MessageReceived; 
-            _Client.Logger = Logger;
-            _Client.AddCookie(new System.Net.Cookie("foo", "bar", "/", "localhost"));
+            client.AcceptInvalidCertificates = AcceptInvalidCertificates;
+            client.ServerConnected += ServerConnected;
+            client.ServerDisconnected += ServerDisconnected;
+            client.MessageReceived += MessageReceived; 
+            client.Logger = Logger;
+            client.AddCookie(new System.Net.Cookie("foo", "bar", "/", "localhost"));
 
             // await _Client.StartAsync();
-            _Client.Start();
-            Console.WriteLine("Client connected: " + _Client.Connected);
+            client.Start();
+            Console.WriteLine("Client connected: " + client.Connected);
         }
 
-        static bool InputBoolean(string question, bool yesDefault)
+        private static bool InputBoolean(string question, bool yesDefault)
         {
             Console.Write(question);
 
             if (yesDefault) Console.Write(" [Y/n]? ");
             else Console.Write(" [y/N]? ");
 
-            string userInput = Console.ReadLine();
+            var userInput = Console.ReadLine();
 
-            if (String.IsNullOrEmpty(userInput))
+            if (string.IsNullOrEmpty(userInput))
             {
                 if (yesDefault) return true;
                 return false;
@@ -183,8 +183,8 @@ namespace Test.Client
             if (yesDefault)
             {
                 if (
-                    (String.Compare(userInput, "n") == 0)
-                    || (String.Compare(userInput, "no") == 0)
+                    string.Compare(userInput, "n") == 0
+                    || string.Compare(userInput, "no") == 0
                    )
                 {
                     return false;
@@ -195,8 +195,8 @@ namespace Test.Client
             else
             {
                 if (
-                    (String.Compare(userInput, "y") == 0)
-                    || (String.Compare(userInput, "yes") == 0)
+                    string.Compare(userInput, "y") == 0
+                    || string.Compare(userInput, "yes") == 0
                    )
                 {
                     return true;
@@ -206,24 +206,24 @@ namespace Test.Client
             }
         }
 
-        static string InputString(string question, string defaultAnswer, bool allowNull)
+        private static string InputString(string question, string defaultAnswer, bool allowNull)
         {
             while (true)
             {
                 Console.Write(question);
 
-                if (!String.IsNullOrEmpty(defaultAnswer))
+                if (!string.IsNullOrEmpty(defaultAnswer))
                 {
                     Console.Write(" [" + defaultAnswer + "]");
                 }
 
                 Console.Write(" ");
 
-                string userInput = Console.ReadLine();
+                var userInput = Console.ReadLine();
 
-                if (String.IsNullOrEmpty(userInput))
+                if (string.IsNullOrEmpty(userInput))
                 {
-                    if (!String.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
+                    if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
                     if (allowNull) return null;
                     else continue;
                 }
@@ -232,22 +232,22 @@ namespace Test.Client
             }
         }
 
-        static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
+        private static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
         {
             while (true)
             {
                 Console.Write(question);
                 Console.Write(" [" + defaultAnswer + "] ");
 
-                string userInput = Console.ReadLine();
+                var userInput = Console.ReadLine();
 
-                if (String.IsNullOrEmpty(userInput))
+                if (string.IsNullOrEmpty(userInput))
                 {
                     return defaultAnswer;
                 }
 
-                int ret = 0;
-                if (!Int32.TryParse(userInput, out ret))
+                var ret = 0;
+                if (!int.TryParse(userInput, out ret))
                 {
                     Console.WriteLine("Please enter a valid integer.");
                     continue;
@@ -273,25 +273,25 @@ namespace Test.Client
                 return ret;
             }
         }
-         
-        static void Logger(string msg)
+
+        private static void Logger(string msg)
         {
             Console.WriteLine(msg);
         }
 
-        static void MessageReceived(object sender, MessageReceivedEventArgs args)
+        private static void MessageReceived(object sender, MessageReceivedEventArgs args)
         {
-            string msg = "(null)";
+            var msg = "(null)";
             if (args.Data != null && args.Data.Count > 0) msg = Encoding.UTF8.GetString(args.Data.Array, 0, args.Data.Count);
             Console.WriteLine(args.MessageType.ToString() + " from server: " + msg);
         }
-         
-        static void ServerConnected(object sender, EventArgs args)
+
+        private static void ServerConnected(object sender, EventArgs args)
         {
             Console.WriteLine("Server connected");
         }
 
-        static void ServerDisconnected(object sender, EventArgs args)
+        private static void ServerDisconnected(object sender, EventArgs args)
         {
             Console.WriteLine("Server disconnected");
         }

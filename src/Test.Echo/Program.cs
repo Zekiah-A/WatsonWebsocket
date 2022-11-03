@@ -6,24 +6,24 @@ using WatsonWebsocket;
 
 namespace Test.Echo
 {
-    class Program
-    {  
-        static string hostname = "localhost";
-        static int port = 8000;
-        static WatsonWsServer server = null;
-        static string clientIpPort = null;
-        static long serverSendMessageCount = 5000;
-        static int serverMessageLength = 16;
-        static long clientSendMessageCount = 5000;
-        static int clientMessageLength = 16;
-         
-        static Statistics serverStats = new Statistics();
-        static Statistics clientStats = new Statistics();
+    internal class Program
+    {
+        private static readonly string Hostname = "localhost";
+        private static readonly int Port = 8000;
+        private static WatsonWsServer server;
+        private static string clientIpPort;
+        private static readonly long ServerSendMessageCount = 5000;
+        private static readonly int ServerMessageLength = 16;
+        private static readonly long ClientSendMessageCount = 5000;
+        private static readonly int ClientMessageLength = 16;
 
-        static void Main(string[] args)
+        private static readonly Statistics ServerStats = new Statistics();
+        private static readonly Statistics ClientStats = new Statistics();
+
+        private static void Main(string[] args)
         {
-            string header = "[Server] ";
-            using (server = new WatsonWsServer(hostname, port, false))
+            var header = "[Server] ";
+            using (server = new WatsonWsServer(Hostname, Port, false))
             {
                 #region Start-Server
                  
@@ -42,9 +42,9 @@ namespace Test.Echo
                 server.MessageReceived += async (s, e) =>
                 {
                     // echo it back
-                    serverStats.AddRecv(e.Data.Count);
+                    ServerStats.AddRecv(e.Data.Count);
                     await server.SendAsync(e.Client, e.Data);
-                    serverStats.AddSent(e.Data.Count);
+                    ServerStats.AddSent(e.Data.Count);
                 };
 
                 server.Logger = Logger;
@@ -59,7 +59,7 @@ namespace Test.Echo
 
                 Task.Delay(1000).Wait();
 
-                while (String.IsNullOrEmpty(clientIpPort)) 
+                while (string.IsNullOrEmpty(clientIpPort)) 
                 {
                     Task.Delay(1000).Wait();
                     Console.WriteLine(header + "waiting for client connection");
@@ -67,11 +67,11 @@ namespace Test.Echo
 
                 Console.WriteLine(header + "detected client " + clientIpPort + ", sending messages");
                  
-                for (int i = 0; i < serverSendMessageCount; i++)
+                for (var i = 0; i < ServerSendMessageCount; i++)
                 {
-                    byte[] msgData = Encoding.UTF8.GetBytes(RandomString(serverMessageLength));
+                    var msgData = Encoding.UTF8.GetBytes(RandomString(ServerMessageLength));
                     server.SendAsync(server.GetClientFromIpPort(clientIpPort), msgData).Wait();
-                    serverStats.AddSent(msgData.Length);
+                    ServerStats.AddSent(msgData.Length);
                 }
 
                 Console.WriteLine(header + "messages sent");
@@ -80,7 +80,7 @@ namespace Test.Echo
 
                 #region Wait-for-and-Echo-Client-Messages
 
-                while (!String.IsNullOrEmpty(clientIpPort))
+                while (!string.IsNullOrEmpty(clientIpPort))
                 {
                     Console.WriteLine(header + "waiting for client to finish");
                     Task.Delay(1000).Wait();
@@ -93,10 +93,10 @@ namespace Test.Echo
                 Console.WriteLine("");
                 Console.WriteLine("");
                 Console.WriteLine("Server statistics:");
-                Console.WriteLine("  " + serverStats.ToString());
+                Console.WriteLine("  " + ServerStats.ToString());
                 Console.WriteLine("");
                 Console.WriteLine("Client statistics");
-                Console.WriteLine("  " + clientStats.ToString());
+                Console.WriteLine("  " + ClientStats.ToString());
                 Console.WriteLine("");
 
                 #endregion
@@ -106,32 +106,32 @@ namespace Test.Echo
             }
         }
 
-        static void Logger(string msg)
+        private static void Logger(string msg)
         {
             Console.WriteLine(msg);
         }
 
-        static async void ClientTask()
+        private static async void ClientTask()
         {
-            string header = "[Client] ";
+            var header = "[Client] ";
 
-            using WatsonWsClient client = new WatsonWsClient(hostname, port, false);
+            using var client = new WatsonWsClient(Hostname, Port, false);
 
             #region Start-Client
 
             client.ServerConnected += (s, e) =>
             { 
-                Console.WriteLine(header + "connected to " + hostname + ":" + port);
+                Console.WriteLine(header + "connected to " + Hostname + ":" + Port);
             };
 
             client.ServerDisconnected += (s, e) =>
             {
-                Console.WriteLine(header + "disconnected from " + hostname + ":" + port);
+                Console.WriteLine(header + "disconnected from " + Hostname + ":" + Port);
             };
 
             client.MessageReceived += (s, e) =>
             {
-                clientStats.AddRecv(e.Data.Count);
+                ClientStats.AddRecv(e.Data.Count);
             };
 
             client.Logger = Logger;
@@ -142,7 +142,7 @@ namespace Test.Echo
 
             #region Wait-for-Messages
 
-            while (clientStats.MsgRecv < serverSendMessageCount) 
+            while (ClientStats.MsgRecv < ServerSendMessageCount) 
             {
                 Task.Delay(1000).Wait();
                 Console.WriteLine(header + "waiting for server messages");
@@ -155,14 +155,14 @@ namespace Test.Echo
 
             Console.WriteLine(header + "sending messages to server");
 
-            for (int i = 0; i < clientSendMessageCount; i++)
+            for (var i = 0; i < ClientSendMessageCount; i++)
             {
-                byte[] msgData = Encoding.UTF8.GetBytes(RandomString(clientMessageLength));
+                var msgData = Encoding.UTF8.GetBytes(RandomString(ClientMessageLength));
                 await client.SendAsync(msgData);
-                clientStats.AddSent(msgData.Length);
+                ClientStats.AddSent(msgData.Length);
             }
 
-            while (clientStats.MsgRecv < (clientSendMessageCount + serverSendMessageCount))
+            while (ClientStats.MsgRecv < ClientSendMessageCount + ServerSendMessageCount)
             {
                 Console.WriteLine(header + "waiting for server echo messages");
                 Task.Delay(1000).Wait();
@@ -174,24 +174,24 @@ namespace Test.Echo
             #endregion
         }
 
-        static string RandomString(int numChar)
+        private static string RandomString(int numChar)
         {
-            string ret = "";
+            var ret = "";
             if (numChar < 1) return null;
-            int valid = 0;
-            Random random = new Random((int)DateTime.Now.Ticks);
-            int num = 0;
+            var valid = 0;
+            var random = new Random((int)DateTime.Now.Ticks);
+            var num = 0;
 
-            for (int i = 0; i < numChar; i++)
+            for (var i = 0; i < numChar; i++)
             {
                 num = 0;
                 valid = 0;
                 while (valid == 0)
                 {
                     num = random.Next(126);
-                    if (((num > 47) && (num < 58)) ||
-                        ((num > 64) && (num < 91)) ||
-                        ((num > 96) && (num < 123)))
+                    if ((num > 47 && num < 58) ||
+                        (num > 64 && num < 91) ||
+                        (num > 96 && num < 123))
                     {
                         valid = 1;
                     }
@@ -202,16 +202,16 @@ namespace Test.Echo
             return ret;
         }
 
-        static bool InputBoolean(string question, bool yesDefault)
+        private static bool InputBoolean(string question, bool yesDefault)
         {
             Console.Write(question);
 
             if (yesDefault) Console.Write(" [Y/n]? ");
             else Console.Write(" [y/N]? ");
 
-            string userInput = Console.ReadLine();
+            var userInput = Console.ReadLine();
 
-            if (String.IsNullOrEmpty(userInput))
+            if (string.IsNullOrEmpty(userInput))
             {
                 if (yesDefault) return true;
                 return false;
@@ -222,8 +222,8 @@ namespace Test.Echo
             if (yesDefault)
             {
                 if (
-                    (String.Compare(userInput, "n") == 0)
-                    || (String.Compare(userInput, "no") == 0)
+                    string.Compare(userInput, "n") == 0
+                    || string.Compare(userInput, "no") == 0
                    )
                 {
                     return false;
@@ -234,8 +234,8 @@ namespace Test.Echo
             else
             {
                 if (
-                    (String.Compare(userInput, "y") == 0)
-                    || (String.Compare(userInput, "yes") == 0)
+                    string.Compare(userInput, "y") == 0
+                    || string.Compare(userInput, "yes") == 0
                    )
                 {
                     return true;
@@ -245,24 +245,24 @@ namespace Test.Echo
             }
         }
 
-        static string InputString(string question, string defaultAnswer, bool allowNull)
+        private static string InputString(string question, string defaultAnswer, bool allowNull)
         {
             while (true)
             {
                 Console.Write(question);
 
-                if (!String.IsNullOrEmpty(defaultAnswer))
+                if (!string.IsNullOrEmpty(defaultAnswer))
                 {
                     Console.Write(" [" + defaultAnswer + "]");
                 }
 
                 Console.Write(" ");
 
-                string userInput = Console.ReadLine();
+                var userInput = Console.ReadLine();
 
-                if (String.IsNullOrEmpty(userInput))
+                if (string.IsNullOrEmpty(userInput))
                 {
-                    if (!String.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
+                    if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
                     if (allowNull) return null;
                     else continue;
                 }
@@ -271,22 +271,22 @@ namespace Test.Echo
             }
         }
 
-        static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
+        private static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
         {
             while (true)
             {
                 Console.Write(question);
                 Console.Write(" [" + defaultAnswer + "] ");
 
-                string userInput = Console.ReadLine();
+                var userInput = Console.ReadLine();
 
-                if (String.IsNullOrEmpty(userInput))
+                if (string.IsNullOrEmpty(userInput))
                 {
                     return defaultAnswer;
                 }
 
-                int ret = 0;
-                if (!Int32.TryParse(userInput, out ret))
+                var ret = 0;
+                if (!int.TryParse(userInput, out ret))
                 {
                     Console.WriteLine("Please enter a valid integer.");
                     continue;

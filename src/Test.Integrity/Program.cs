@@ -7,28 +7,28 @@ using WatsonWebsocket;
 
 namespace Test.Integrity
 {
-    class Program
+    internal class Program
     {
-        static int numClients = 5;
-        static int messagesPerClient = 100;
-        static int msgLength = 4096;
-        static int sendDelay = 100;
-        static byte[] msgData;
+        private static readonly int NumClients = 5;
+        private static readonly int MessagesPerClient = 100;
+        private static readonly int MsgLength = 4096;
+        private static int sendDelay = 100;
+        private static byte[] msgData;
 
-        static string hostname = "localhost";
-        static int port = 8000;
-        static WatsonWsServer server;
-        static bool serverReady;
-        
-        static Statistics serverStats = new();
-        static List<Statistics> clientStats = new();
-         
-        static void Main(string[] args)
+        private static readonly string Hostname = "localhost";
+        private static readonly int Port = 8000;
+        private static WatsonWsServer server;
+        private static bool serverReady;
+
+        private static Statistics serverStats = new();
+        private static readonly List<Statistics> ClientStats = new();
+
+        private static void Main(string[] args)
         {
-            msgData = Encoding.UTF8.GetBytes(RandomString(msgLength));
-            sendDelay = numClients * 20;
+            msgData = Encoding.UTF8.GetBytes(RandomString(MsgLength));
+            sendDelay = NumClients * 20;
 
-            using (server = new WatsonWsServer(hostname, port, false))
+            using (server = new WatsonWsServer(Hostname, Port, false))
             {
                 #region Start-Server
 
@@ -57,7 +57,7 @@ namespace Test.Integrity
 
                 #region Start-and-Wait-for-Clients
 
-                for (int i = 0; i < numClients; i++)
+                for (var i = 0; i < NumClients; i++)
                 {
                     Console.WriteLine("Starting client " + (i + 1) + "...");
                     Task.Run(() => ClientTask());
@@ -67,10 +67,10 @@ namespace Test.Integrity
                 while (true)
                 {
                     Task.Delay(1000).Wait();
-                    int connected = 0;
+                    var connected = 0;
                     connected = server.Clients.Count;
-                    if (connected == numClients) break;
-                    Console.WriteLine(connected + " of " + numClients + " connected, waiting");
+                    if (connected == NumClients) break;
+                    Console.WriteLine(connected + " of " + NumClients + " connected, waiting");
                 }
 
                 Console.WriteLine("All clients connected!");
@@ -80,9 +80,9 @@ namespace Test.Integrity
 
                 #region Send-Messages-to-Clients
 
-                for (int i = 0; i < messagesPerClient; i++)
+                for (var i = 0; i < MessagesPerClient; i++)
                 {
-                    for (int j = 0; j < numClients; j++)
+                    for (var j = 0; j < NumClients; j++)
                     {
                         server.SendAsync(server.Clients[i], msgData).Wait();
                         serverStats.AddSent(msgData.Length);
@@ -96,11 +96,11 @@ namespace Test.Integrity
                 while (true)
                 {
                     Task.Delay(5000).Wait();
-                    int remaining = 0;
+                    var remaining = 0;
                     remaining = server.Clients.Count;
                     if (remaining < 1) break;
                     Console.WriteLine(DateTime.Now.ToUniversalTime().ToString("HH:mm:ss.ffffff") + " waiting for " + remaining + " clients: ");
-                    foreach (ClientMetadata curr in server.Clients) Console.WriteLine("| " + curr.IpPort);
+                    foreach (var curr in server.Clients) Console.WriteLine("| " + curr.IpPort);
                 }
 
                 #endregion
@@ -113,34 +113,34 @@ namespace Test.Integrity
                 Console.WriteLine("  " + serverStats);
                 Console.WriteLine("");
                 Console.WriteLine("Client statistics");
-                foreach (Statistics stats in clientStats) Console.WriteLine("  " + stats.ToString());
+                foreach (var stats in ClientStats) Console.WriteLine("  " + stats.ToString());
                 Console.WriteLine("");
 
                 #endregion
             }
         }
 
-        static void Logger(string msg)
+        private static void Logger(string msg)
         {
             Console.WriteLine(msg);
         }
 
-        static void ClientTask()
+        private static void ClientTask()
         {
-            Statistics stats = new Statistics();
+            var stats = new Statistics();
 
-            using WatsonWsClient client = new WatsonWsClient(hostname, port, false);
+            using var client = new WatsonWsClient(Hostname, Port, false);
 
             #region Start-Client
 
             client.ServerConnected += (s, e) =>
             {
-                Console.WriteLine("Client detected connection to " + hostname + ":" + port);
+                Console.WriteLine("Client detected connection to " + Hostname + ":" + Port);
             };
 
             client.ServerDisconnected += (s, e) =>
             {
-                Console.WriteLine("Client disconnected from " + hostname + ":" + port);
+                Console.WriteLine("Client disconnected from " + Hostname + ":" + Port);
             };
 
             client.MessageReceived += (s, e) =>
@@ -167,7 +167,7 @@ namespace Test.Integrity
 
             #region Send-Messages-to-Server
 
-            for (int i = 0; i < messagesPerClient; i++)
+            for (var i = 0; i < MessagesPerClient; i++)
             {
                 Task.Delay(sendDelay).Wait();
                 client.SendAsync(msgData).Wait();
@@ -178,35 +178,35 @@ namespace Test.Integrity
 
             #region Wait-for-Server-Messages
 
-            while (stats.MsgRecv < messagesPerClient)
+            while (stats.MsgRecv < MessagesPerClient)
             {
                 Task.Delay(1000).Wait();
             }
 
             Console.WriteLine("Client exiting: " + stats.ToString());
-            clientStats.Add(stats);
+            ClientStats.Add(stats);
 
             #endregion
         }
 
-        static string RandomString(int numChar)
+        private static string RandomString(int numChar)
         {
-            string ret = "";
+            var ret = "";
             if (numChar < 1) return null;
-            int valid = 0;
-            Random random = new Random((int)DateTime.Now.Ticks);
-            int num = 0;
+            var valid = 0;
+            var random = new Random((int)DateTime.Now.Ticks);
+            var num = 0;
 
-            for (int i = 0; i < numChar; i++)
+            for (var i = 0; i < numChar; i++)
             {
                 num = 0;
                 valid = 0;
                 while (valid == 0)
                 {
                     num = random.Next(126);
-                    if (((num > 47) && (num < 58)) ||
-                        ((num > 64) && (num < 91)) ||
-                        ((num > 96) && (num < 123)))
+                    if ((num > 47 && num < 58) ||
+                        (num > 64 && num < 91) ||
+                        (num > 96 && num < 123))
                     {
                         valid = 1;
                     }
@@ -217,16 +217,16 @@ namespace Test.Integrity
             return ret;
         }
 
-        static bool InputBoolean(string question, bool yesDefault)
+        private static bool InputBoolean(string question, bool yesDefault)
         {
             Console.Write(question);
 
             if (yesDefault) Console.Write(" [Y/n]? ");
             else Console.Write(" [y/N]? ");
 
-            string userInput = Console.ReadLine();
+            var userInput = Console.ReadLine();
 
-            if (String.IsNullOrEmpty(userInput))
+            if (string.IsNullOrEmpty(userInput))
             {
                 if (yesDefault) return true;
                 return false;
@@ -237,8 +237,8 @@ namespace Test.Integrity
             if (yesDefault)
             {
                 if (
-                    (String.Compare(userInput, "n") == 0)
-                    || (String.Compare(userInput, "no") == 0)
+                    string.Compare(userInput, "n") == 0
+                    || string.Compare(userInput, "no") == 0
                    )
                 {
                     return false;
@@ -249,8 +249,8 @@ namespace Test.Integrity
             else
             {
                 if (
-                    (String.Compare(userInput, "y") == 0)
-                    || (String.Compare(userInput, "yes") == 0)
+                    string.Compare(userInput, "y") == 0
+                    || string.Compare(userInput, "yes") == 0
                    )
                 {
                     return true;
@@ -260,24 +260,24 @@ namespace Test.Integrity
             }
         }
 
-        static string InputString(string question, string defaultAnswer, bool allowNull)
+        private static string InputString(string question, string defaultAnswer, bool allowNull)
         {
             while (true)
             {
                 Console.Write(question);
 
-                if (!String.IsNullOrEmpty(defaultAnswer))
+                if (!string.IsNullOrEmpty(defaultAnswer))
                 {
                     Console.Write(" [" + defaultAnswer + "]");
                 }
 
                 Console.Write(" ");
 
-                string userInput = Console.ReadLine();
+                var userInput = Console.ReadLine();
 
-                if (String.IsNullOrEmpty(userInput))
+                if (string.IsNullOrEmpty(userInput))
                 {
-                    if (!String.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
+                    if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
                     if (allowNull) return null;
                     else continue;
                 }
@@ -286,22 +286,22 @@ namespace Test.Integrity
             }
         }
 
-        static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
+        private static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
         {
             while (true)
             {
                 Console.Write(question);
                 Console.Write(" [" + defaultAnswer + "] ");
 
-                string userInput = Console.ReadLine();
+                var userInput = Console.ReadLine();
 
-                if (String.IsNullOrEmpty(userInput))
+                if (string.IsNullOrEmpty(userInput))
                 {
                     return defaultAnswer;
                 }
 
-                int ret = 0;
-                if (!Int32.TryParse(userInput, out ret))
+                var ret = 0;
+                if (!int.TryParse(userInput, out ret))
                 {
                     Console.WriteLine("Please enter a valid integer.");
                     continue;
