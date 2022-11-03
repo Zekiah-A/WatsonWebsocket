@@ -74,12 +74,12 @@
             The amount of time which the client or server has been up.
             </summary>
         </member>
-        <member name="P:WatsonWebsocket.Statistics.ReceivedBytes">
+        <member name="F:WatsonWebsocket.Statistics.ReceivedBytes">
             <summary>
             The number of bytes received.
             </summary>
         </member>
-        <member name="P:WatsonWebsocket.Statistics.ReceivedMessages">
+        <member name="F:WatsonWebsocket.Statistics.ReceivedMessages">
             <summary>
             The number of messages received.
             </summary>
@@ -89,12 +89,12 @@
             Average received message size in bytes.
             </summary>
         </member>
-        <member name="P:WatsonWebsocket.Statistics.SentBytes">
+        <member name="F:WatsonWebsocket.Statistics.SentBytes">
             <summary>
             The number of bytes sent.
             </summary>
         </member>
-        <member name="P:WatsonWebsocket.Statistics.SentMessages">
+        <member name="F:WatsonWebsocket.Statistics.SentMessages">
             <summary>
             The number of messages sent.
             </summary>
