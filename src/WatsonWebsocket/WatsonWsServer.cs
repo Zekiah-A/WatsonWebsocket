@@ -22,7 +22,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// Determine if the server is listening for new connections.
         /// </summary>
-        public bool IsListening => Listener is {IsListening: true};
+        public bool IsListening => listener is {IsListening: true};
 
         /// <summary>
         /// Enable or disable statistics.
@@ -81,12 +81,12 @@ namespace WatsonWebsocket
 
         #region Private-Members
 
-        private readonly string Header = "[WatsonWsServer] ";
-        private readonly List<string> ListenerPrefixes = new();
-        private readonly HttpListener Listener;
-        private CancellationTokenSource TokenSource;
-        private CancellationToken Token; 
-        private Task? AcceptConnectionsTask;
+        private readonly string header = "[WatsonWsServer] ";
+        private readonly List<string> listenerPrefixes = new();
+        private readonly HttpListener listener;
+        private CancellationTokenSource tokenSource;
+        private CancellationToken token; 
+        private Task? acceptConnectionsTask;
 
         #endregion
 
@@ -100,22 +100,22 @@ namespace WatsonWebsocket
         /// <param name="hostname">The hostname or IP address upon which to listen.</param>
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="ssl">Enable or disable SSL.</param> 
-        public WatsonWsServer(string hostname = "localhost", int port = 9000, bool ssl = false)
+        public WatsonWsServer(string? hostname = "localhost", int port = 9000, bool ssl = false)
         {
             if (port < 0) throw new ArgumentOutOfRangeException(nameof(port));
             if (string.IsNullOrEmpty(hostname)) hostname = "localhost";
             
-            if (ssl) ListenerPrefixes.Add("https://" + hostname + ":" + port + "/");
-            else ListenerPrefixes.Add("http://" + hostname + ":" + port + "/");
+            if (ssl) listenerPrefixes.Add("https://" + hostname + ":" + port + "/");
+            else listenerPrefixes.Add("http://" + hostname + ":" + port + "/");
 
-            Listener = new HttpListener();
-            foreach (var prefix in ListenerPrefixes)
+            listener = new HttpListener();
+            foreach (var prefix in listenerPrefixes)
             {
-                Listener.Prefixes.Add(prefix);
+                listener.Prefixes.Add(prefix);
             }
 
-            TokenSource = new CancellationTokenSource();
-            Token = TokenSource.Token;
+            tokenSource = new CancellationTokenSource();
+            token = tokenSource.Token;
             Clients = new List<ClientMetadata?>();
         }
 
@@ -134,18 +134,18 @@ namespace WatsonWebsocket
 
             foreach (var hostname in hostnames)
             {
-                if (ssl) ListenerPrefixes.Add("https://" + hostname + ":" + port + "/");
-                else ListenerPrefixes.Add("http://" + hostname + ":" + port + "/");
+                if (ssl) listenerPrefixes.Add("https://" + hostname + ":" + port + "/");
+                else listenerPrefixes.Add("http://" + hostname + ":" + port + "/");
             }
 
-            Listener = new HttpListener();
-            foreach (var prefix in ListenerPrefixes)
+            listener = new HttpListener();
+            foreach (var prefix in listenerPrefixes)
             {
-                Listener.Prefixes.Add(prefix);
+                listener.Prefixes.Add(prefix);
             }
 
-            TokenSource = new CancellationTokenSource();
-            Token = TokenSource.Token;
+            tokenSource = new CancellationTokenSource();
+            token = tokenSource.Token;
             Clients = new List<ClientMetadata?>();
         }
 
@@ -183,16 +183,16 @@ namespace WatsonWebsocket
                 Host = host
             };
 
-            ListenerPrefixes.Add(listenerUri.ToString());
+            listenerPrefixes.Add(listenerUri.ToString());
 
-            Listener = new HttpListener();
-            foreach (var prefix in ListenerPrefixes)
+            listener = new HttpListener();
+            foreach (var prefix in listenerPrefixes)
             {
-                Listener.Prefixes.Add(prefix);
+                listener.Prefixes.Add(prefix);
             }
 
-            TokenSource = new CancellationTokenSource();
-            Token = TokenSource.Token;
+            tokenSource = new CancellationTokenSource();
+            token = tokenSource.Token;
             Clients = new List<ClientMetadata?>();
         }
 
@@ -217,17 +217,17 @@ namespace WatsonWebsocket
 
             Stats = new Statistics();
 
-            var logMsg = Header + "starting on:";
-            foreach (var prefix in ListenerPrefixes) logMsg += " " + prefix;
+            var logMsg = header + "starting on:";
+            foreach (var prefix in listenerPrefixes) logMsg += " " + prefix;
             Logger?.Invoke(logMsg);
 
             if (AcceptInvalidCertificates) SetInvalidCertificateAcceptance();
 
-            TokenSource = new CancellationTokenSource();
-            Token = TokenSource.Token;
-            Listener.Start();
+            tokenSource = new CancellationTokenSource();
+            token = tokenSource.Token;
+            listener.Start();
 
-            AcceptConnectionsTask = Task.Run(() => AcceptConnections(Token), Token);
+            acceptConnectionsTask = Task.Run(() => AcceptConnections(token), token);
         }
 
         /// <summary>
@@ -240,18 +240,18 @@ namespace WatsonWebsocket
 
             Stats = new Statistics();
 
-            var logMsg = Header + "starting on:";
-            foreach (var prefix in ListenerPrefixes) logMsg += " " + prefix;
+            var logMsg = header + "starting on:";
+            foreach (var prefix in listenerPrefixes) logMsg += " " + prefix;
             Logger?.Invoke(logMsg);
 
             if (AcceptInvalidCertificates) SetInvalidCertificateAcceptance();
 
-            TokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-            Token = token;
+            tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+            this.token = token;
 
-            Listener.Start();
+            listener.Start();
 
-            AcceptConnectionsTask = Task.Run(() => AcceptConnections(Token), Token);
+            acceptConnectionsTask = Task.Run(() => AcceptConnections(this.token), this.token);
 
             return Task.Delay(1);
         }
@@ -263,9 +263,9 @@ namespace WatsonWebsocket
         {
             if (!IsListening) throw new InvalidOperationException("Watson websocket server is not running.");
 
-            Logger?.Invoke(Header + "stopping");
+            Logger?.Invoke(header + "stopping");
 
-            Listener.Stop(); 
+            listener.Stop(); 
         }
 
         /// <summary>
@@ -288,7 +288,7 @@ namespace WatsonWebsocket
         /// <param name="data">Byte array containing data.</param> 
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata? client, byte[] data, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata? client, byte[]? data, CancellationToken token = default)
         {
             return SendAsync(client, new ArraySegment<byte>(data), WebSocketMessageType.Binary, token);
         }
@@ -349,7 +349,7 @@ namespace WatsonWebsocket
         /// <returns>TaskAwaiter.</returns>
         public TaskAwaiter? GetAwaiter()
         {
-            return AcceptConnectionsTask?.GetAwaiter();
+            return acceptConnectionsTask?.GetAwaiter();
         }
 
         #endregion
@@ -369,10 +369,10 @@ namespace WatsonWebsocket
                 client.TokenSource.Cancel();
             }
 
-            if (Listener.IsListening) Listener.Stop();
-            Listener.Close();
+            if (listener.IsListening) listener.Stop();
+            listener.Close();
 
-            TokenSource.Cancel();
+            tokenSource.Cancel();
         }
 
         private static void SetInvalidCertificateAcceptance()
@@ -386,20 +386,20 @@ namespace WatsonWebsocket
             { 
                 while (!cancelToken.IsCancellationRequested)
                 {
-                    if (!Listener.IsListening)
+                    if (!listener.IsListening)
                     {
                         Task.Delay(100).Wait();
                         continue;
                     } 
 
-                    var ctx = await Listener.GetContextAsync().ConfigureAwait(false);
+                    var ctx = await listener.GetContextAsync().ConfigureAwait(false);
                     var ip = ctx.Request.RemoteEndPoint.Address.ToString();
                     var port = ctx.Request.RemoteEndPoint.Port;
                     var ipPort = ip + ":" + port;
 
                     if (PermittedIpAddresses is {Count: > 0} && !PermittedIpAddresses.Contains(ip))
                     {
-                        Logger?.Invoke(Header + "rejecting " + ipPort + " (not permitted)");
+                        Logger?.Invoke(header + "rejecting " + ipPort + " (not permitted)");
                         ctx.Response.StatusCode = 401;
                         ctx.Response.Close();
                         continue;
@@ -409,13 +409,13 @@ namespace WatsonWebsocket
                     {
                         if (HttpHandler == null)
                         {
-                            Logger?.Invoke(Header + "non-websocket request rejected from " + ipPort);
+                            Logger?.Invoke(header + "non-websocket request rejected from " + ipPort);
                             ctx.Response.StatusCode = 400;
                             ctx.Response.Close();
                         }
                         else
                         {
-                            Logger?.Invoke(Header + "non-websocket request from " + ipPort + " HTTP-forwarded: " + ctx.Request.HttpMethod + " " + ctx.Request.RawUrl);
+                            Logger?.Invoke(header + "non-websocket request from " + ipPort + " HTTP-forwarded: " + ctx.Request.HttpMethod + " " + ctx.Request.RawUrl);
                             HttpHandler.Invoke(ctx);
                         }
                         
@@ -440,7 +440,7 @@ namespace WatsonWebsocket
 
                     await Task.Run(() =>
                     {
-                        Logger?.Invoke(Header + "starting data receiver for " + ipPort);
+                        Logger?.Invoke(header + "starting data receiver for " + ipPort);
 
                         var tokenSource = new CancellationTokenSource();
                         var token = tokenSource.Token;
@@ -458,7 +458,7 @@ namespace WatsonWebsocket
                              
                         }, token);
 
-                    }, Token).ConfigureAwait(false); 
+                    }, token).ConfigureAwait(false); 
                 } 
             }
             /*
@@ -481,7 +481,7 @@ namespace WatsonWebsocket
             }
             catch (Exception e)
             {
-                Logger?.Invoke(Header + "listener exception:" + Environment.NewLine + e);
+                Logger?.Invoke(header + "listener exception:" + Environment.NewLine + e);
             }
             finally
             {
@@ -582,7 +582,7 @@ namespace WatsonWebsocket
             var header = "[WatsonWsServer " + md.IpPort + "] ";
 
             var tokens = new CancellationToken[3];
-            tokens[0] = Token;
+            tokens[0] = this.token;
             tokens[1] = token;
             tokens[2] = md.TokenSource.Token;
 
@@ -614,7 +614,7 @@ namespace WatsonWebsocket
             }
             catch (TaskCanceledException)
             {
-                if (Token.IsCancellationRequested)
+                if (this.token.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "server canceled");
                 }
@@ -629,7 +629,7 @@ namespace WatsonWebsocket
             }
             catch (OperationCanceledException)
             {
-                if (Token.IsCancellationRequested)
+                if (this.token.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "canceled");
                 }

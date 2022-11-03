@@ -6,81 +6,85 @@ internal class Statistics
     {
         get
         {
-            lock (_StatsLock)
+            lock (statsLock)
             {
-                return _MsgSent;
+                return msgSent;
             }
         }
+        set => msgSent = value;
     }
 
     public long MsgRecv
     {
         get
         {
-            lock (_StatsLock)
+            lock (statsLock)
             {
-                return _MsgRecv;
+                return msgRecv;
             }
         }
+        set => msgRecv = value;
     }
 
     public long BytesSent
     {
         get
         {
-            lock (_StatsLock)
+            lock (statsLock)
             {
-                return _BytesSent;
+                return bytesSent;
             }
         }
+        set => bytesSent = value;
     }
 
     public long BytesRecv
     {
         get
         {
-            lock (_StatsLock)
+            lock (statsLock)
             {
-                return _BytesRecv;
+                return bytesRecv;
             }
         }
+        set => bytesRecv = value;
     }
 
-    private readonly object _StatsLock = new object();
+    private readonly object statsLock = new object();
 
-    private long _MsgSent;
-    private long _MsgRecv;
-    private long _BytesSent;
-    private long _BytesRecv;
+    private long msgSent;
+    private long msgRecv;
+    private long bytesSent;
+    private long bytesRecv;
 
     public Statistics()
     {
-        _MsgSent = 0;
-        _MsgRecv = 0;
-        _BytesSent = 0;
-        _BytesRecv = 0;
+        msgSent = 0;
+        msgRecv = 0;
+        bytesSent = 0;
+        bytesRecv = 0;
     }
 
     public override string ToString()
     {
-        return "Sent [" + _MsgSent + " msgs, " + _BytesSent + " bytes] Received [" + _MsgRecv + " msgs, " + _BytesRecv + " bytes]";
+        return "Sent [" + MsgSent + " msgs, " + BytesSent + " bytes] Received [" + MsgRecv + " msgs, " + BytesRecv + " bytes]";
     }
 
     public void AddSent(long len)
     {
-        lock (_StatsLock)
+        lock (statsLock)
         {
-            _MsgSent++;
-            _BytesSent += len;
+            MsgSent++;
+            BytesSent += len;
         }
     }
 
     public void AddRecv(long len)
     {
-        lock (_StatsLock)
+        lock (statsLock)
         {
-            _MsgRecv++;
-            _BytesRecv += len;
+            MsgRecv++;
+            BytesRecv += len;
         }
     }
 }

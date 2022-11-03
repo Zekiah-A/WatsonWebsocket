@@ -8,15 +8,15 @@ namespace Test.Integrity;
 
 internal static class Program
 {
-    private static readonly int NumClients = 5;
-    private static readonly int MessagesPerClient = 100;
-    private static readonly int MsgLength = 4096;
+    private const int NumClients = 5;
+    private const int MessagesPerClient = 100;
+    private const int MsgLength = 4096;
     private static int sendDelay = 100;
-    private static byte[] msgData;
+    private static byte[]? msgData;
 
-    private static readonly string Hostname = "localhost";
-    private static readonly int Port = 8000;
-    private static WatsonWsServer server;
+    private const string? Hostname = "localhost";
+    private const int Port = 8000;
+    private static WatsonWsServer? server;
     private static bool serverReady;
 
     private static Statistics serverStats = new();

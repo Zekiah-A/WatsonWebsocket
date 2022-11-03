@@ -10,10 +10,10 @@ namespace Test.Server;
 
 internal static class Program
 {
-    private static string serverIp = "localhost";
+    private static string? serverIp = "localhost";
     private static int serverPort;
     private static bool ssl;
-    private static readonly bool AcceptInvalidCertificates = true;
+    private const bool AcceptInvalidCertificates = true;
     private static WatsonWsServer server;
     private static string? lastIpPort;
 
@@ -96,25 +96,24 @@ internal static class Program
                     break;
                 }
                 case "stats":
-                    Console.WriteLine(server.Stats.ToString());
+                    Console.WriteLine(server.Stats?.ToString());
                     break;
 
                 case "send":
                 {
-                    
                     if (splitInput.Length != 2) break;
-                    splitInput = splitInput[1].Split(new string[] {" "}, 3, StringSplitOptions.None);
+                    splitInput = splitInput[1]?.Split(new[] {" "}, 3, StringSplitOptions.None) ?? Array.Empty<string>();
                     if (splitInput.Length != 3) break;
-                    ipPort = splitInput[0].Equals("last") ? lastIpPort : splitInput[0];
+                    ipPort = splitInput[0]!.Equals("last") ? lastIpPort : splitInput[0];
                     if (string.IsNullOrEmpty(splitInput[2])) break;
 
                     var client = server.GetClientFromIpPort(ipPort);
                     if (client is null) return;
 
-                    if (splitInput[1].Equals("text")) success = server.SendAsync(client, splitInput[2]).Result;
-                    else if (splitInput[1].Equals("bytes"))
+                    if (splitInput[1]!.Equals("text")) success = server.SendAsync(client, splitInput[2]).Result;
+                    else if (splitInput[1]!.Equals("bytes"))
                     {
-                        var data = Encoding.UTF8.GetBytes(splitInput[2]);
+                        var data = Encoding.UTF8.GetBytes(splitInput[2] ?? string.Empty);
                         success = server.SendAsync(client, data).Result;
                     }
                     else break;
@@ -124,7 +123,8 @@ internal static class Program
                 }
                 case "kill":
                     if (splitInput.Length != 2) break;
-                    server.DisconnectClient(server.GetClientFromIpPort(splitInput[1]));
+                    if (server.GetClientFromIpPort(splitInput[1]) is null) return;
+                    server.DisconnectClient(server.GetClientFromIpPort(splitInput[1])!);
                     break;
 
                 default:
@@ -190,39 +190,20 @@ internal static class Program
 
         if (string.IsNullOrEmpty(userInput))
         {
-            if (yesDefault) return true;
-            return false;
+            return yesDefault;
         }
 
         userInput = userInput.ToLower();
 
         if (yesDefault)
         {
-            if (
-                string.Compare(userInput, "n") == 0
-                || string.Compare(userInput, "no") == 0
-            )
-            {
-                return false;
-            }
-
-            return true;
+            return string.CompareOrdinal(userInput, "n") != 0 && string.CompareOrdinal(userInput, "no") != 0;
         }
-        else
-        {
-            if (
-                string.Compare(userInput, "y") == 0
-                || string.Compare(userInput, "yes") == 0
-            )
-            {
-                return true;
-            }
 
-            return false;
-        }
+        return string.CompareOrdinal(userInput, "y") == 0 || string.CompareOrdinal(userInput, "yes") == 0;
     }
 
-    private static string InputString(string question, string defaultAnswer, bool allowNull)
+    private static string? InputString(string question, string? defaultAnswer, bool allowNull)
     {
         while (true)
         {
@@ -237,14 +218,9 @@ internal static class Program
 
             var userInput = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(userInput))
-            {
-                if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
-                if (allowNull) return null;
-                else continue;
-            }
-
-            return userInput;
+            if (!string.IsNullOrEmpty(userInput)) return userInput;
+            if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
+            if (allowNull) return null;
         }
     }
 
@@ -281,27 +257,25 @@ internal static class Program
         }
     }
 
-    private static void ClientConnected(object sender, ClientConnectedEventArgs args) 
+    private static void ClientConnected(object? sender, ClientConnectedEventArgs args) 
     {
         Console.WriteLine("Client " + args.Client.IpPort + " connected using URL " + args.HttpRequest.RawUrl);
         lastIpPort = args.Client.IpPort;
 
-        if (args.HttpRequest.Cookies != null && args.HttpRequest.Cookies.Count > 0)
+        if (args.HttpRequest.Cookies.Count <= 0) return;
+        Console.WriteLine(args.HttpRequest.Cookies.Count + " cookie(s) present:");
+        foreach (Cookie cookie in args.HttpRequest.Cookies)
         {
-            Console.WriteLine(args.HttpRequest.Cookies.Count + " cookie(s) present:");
-            foreach (Cookie cookie in args.HttpRequest.Cookies)
-            {
-                Console.WriteLine("| " + cookie.Name + ": " + cookie.Value);
-            }
+            Console.WriteLine("| " + cookie.Name + ": " + cookie.Value);
         }
     }
 
-    private static void ClientDisconnected(object sender, ClientDisconnectedEventArgs args)
+    private static void ClientDisconnected(object? sender, ClientDisconnectedEventArgs args)
     {
         Console.WriteLine("Client disconnected: " + args.Client.IpPort);
     }
 
-    private static void MessageReceived(object sender, MessageReceivedEventArgs args)
+    private static void MessageReceived(object? sender, MessageReceivedEventArgs args)
     {
         var msg = "(null)";
         if (args.Data != null && args.Data.Count > 0) msg = Encoding.UTF8.GetString(args.Data.Array, 0, args.Data.Count);
@@ -311,7 +285,7 @@ internal static class Program
     private static void HttpHandler(HttpListenerContext ctx)
     { 
         var req = ctx.Request;
-        string contents = null;
+        string? contents;
         using (var stream = req.InputStream)
         {
             using (var readStream = new StreamReader(stream, Encoding.UTF8))
@@ -321,7 +295,7 @@ internal static class Program
         }
 
         Console.WriteLine("Non-websocket request received for: " + req.HttpMethod.ToString() + " " + req.RawUrl);
-        if (req.Headers != null && req.Headers.Count > 0)
+        if (req.Headers.Count > 0)
         {
             Console.WriteLine("Headers:"); 
             var items = req.Headers.AllKeys.SelectMany(req.Headers.GetValues, (k, v) => new { key = k, value = v });
@@ -331,10 +305,8 @@ internal static class Program
             }
         }
 
-        if (!string.IsNullOrEmpty(contents))
-        {
-            Console.WriteLine("Request body:");
-            Console.WriteLine(contents);
-        }
+        if (string.IsNullOrEmpty(contents)) return;
+        Console.WriteLine("Request body:");
+        Console.WriteLine(contents);
     }
 }

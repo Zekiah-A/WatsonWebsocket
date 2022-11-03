@@ -24,7 +24,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// Indicates whether or not the client is connected to the server.
         /// </summary>
-        public bool Connected => ClientWs.State == WebSocketState.Open;
+        public bool Connected => clientWs.State == WebSocketState.Open;
 
         /// <summary>
         /// Enable or disable statistics.
@@ -36,11 +36,11 @@ namespace WatsonWebsocket
         /// </summary>
         public int KeepAliveInterval
         {
-            get => KeepAliveIntervalSeconds;
+            get => keepAliveIntervalSeconds;
             set
             {
                 if (value < 1) throw new ArgumentException("ConnectTimeoutSeconds must be greater than zero.");
-                KeepAliveIntervalSeconds = value;
+                keepAliveIntervalSeconds = value;
             }
         }
          
@@ -74,22 +74,22 @@ namespace WatsonWebsocket
         #region Private-Members
 
         private const string Header = "[WatsonWsClient] ";
-        private readonly Uri ServerUri;
-        private readonly string ServerIp;
-        private readonly int ServerPort;
-        private readonly string ServerIpPort;
-        private ClientWebSocket ClientWs;
-        private int KeepAliveIntervalSeconds = 30;
-        private readonly CookieContainer Cookies = new();
-        private Action<ClientWebSocketOptions>? PreConfigureOptions;
+        private readonly Uri serverUri;
+        private readonly string? serverIp;
+        private readonly int serverPort;
+        private readonly string serverIpPort;
+        private ClientWebSocket clientWs;
+        private int keepAliveIntervalSeconds = 30;
+        private readonly CookieContainer cookies = new();
+        private Action<ClientWebSocketOptions>? preConfigureOptions;
 
         private event EventHandler<MessageReceivedEventArgs>? AwaitingSyncResponseEvent;
 
-        private readonly SemaphoreSlim SendLock = new(1);
-        private readonly SemaphoreSlim AwaitingSyncResponseLock = new(1);
+        private readonly SemaphoreSlim sendLock = new(1);
+        private readonly SemaphoreSlim awaitingSyncResponseLock = new(1);
 
-        private readonly CancellationTokenSource TokenSource = new();
-        private readonly CancellationToken Token;
+        private readonly CancellationTokenSource tokenSource = new();
+        private readonly CancellationToken token;
 
         #endregion
 
@@ -102,22 +102,22 @@ namespace WatsonWebsocket
         /// <param name="serverIp">IP address of the server.</param>
         /// <param name="serverPort">TCP port of the server.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
-        public WatsonWsClient(string serverIp, int serverPort, bool ssl)
+        public WatsonWsClient(string? serverIp, int serverPort, bool ssl)
         {
             string? url;
             if (string.IsNullOrEmpty(serverIp)) throw new ArgumentNullException(nameof(serverIp));
             if (serverPort < 1) throw new ArgumentOutOfRangeException(nameof(serverPort));
 
-            ServerIp = serverIp;
-            ServerPort = serverPort;
-            ServerIpPort = serverIp + ":" + serverPort;
+            this.serverIp = serverIp;
+            this.serverPort = serverPort;
+            serverIpPort = serverIp + ":" + serverPort;
 
-            if (ssl) url = "wss://" + ServerIp + ":" + ServerPort;
-            else url = "ws://" + ServerIp + ":" + ServerPort;
-            ServerUri = new Uri(url);
-            Token = TokenSource.Token;
+            if (ssl) url = "wss://" + this.serverIp + ":" + this.serverPort;
+            else url = "ws://" + this.serverIp + ":" + this.serverPort;
+            serverUri = new Uri(url);
+            token = tokenSource.Token;
 
-            ClientWs = new ClientWebSocket();
+            clientWs = new ClientWebSocket();
         }
 
         /// <summary>
@@ -127,13 +127,13 @@ namespace WatsonWebsocket
         /// <param name="uri">The URI of the server endpoint.</param> 
         public WatsonWsClient(Uri uri)
         {
-            ServerUri = uri;
-            var serverIp = uri.Host;
-            var serverPort = uri.Port;
-            ServerIpPort = uri.Host + ":" + uri.Port;
-            Token = TokenSource.Token;
+            serverUri = uri;
+            serverIp = uri.Host;
+            serverPort = uri.Port;
+            serverIpPort = uri.Host + ":" + uri.Port;
+            token = tokenSource.Token;
 
-            ClientWs = new ClientWebSocket();
+            clientWs = new ClientWebSocket();
         }
 
         #endregion
@@ -157,7 +157,7 @@ namespace WatsonWebsocket
         {
             if (!Connected)
             {
-                PreConfigureOptions = options;
+                preConfigureOptions = options;
             }
 
             return this;
@@ -166,7 +166,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// Add a cookie prior to connecting to the server.
         /// </summary>
-        public void AddCookie(Cookie cookie) => Cookies.Add(cookie);
+        public void AddCookie(Cookie cookie) => cookies.Add(cookie);
 
         /// <summary>
         /// Start the client and connect to the server.
@@ -176,12 +176,12 @@ namespace WatsonWebsocket
             Stats = new Statistics();
             if (AcceptInvalidCertificates) SetInvalidCertificateAcceptance();
 
-            ClientWs.Options.Cookies = Cookies;
-            ClientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(KeepAliveIntervalSeconds);
+            clientWs.Options.Cookies = cookies;
+            clientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds);
 
-            PreConfigureOptions?.Invoke(ClientWs.Options);
+            preConfigureOptions?.Invoke(clientWs.Options);
 
-            ClientWs.ConnectAsync(ServerUri, Token).ContinueWith(AfterConnect).Wait();
+            clientWs.ConnectAsync(serverUri, token).ContinueWith(AfterConnect).Wait();
         }
 
         /// <summary>
@@ -193,16 +193,16 @@ namespace WatsonWebsocket
             Stats = new Statistics();
             if (AcceptInvalidCertificates) SetInvalidCertificateAcceptance();
 
-            ClientWs.Options.Cookies = Cookies;
-            ClientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(KeepAliveIntervalSeconds);
+            clientWs.Options.Cookies = cookies;
+            clientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds);
 
-            if (PreConfigureOptions != null)
+            if (preConfigureOptions != null)
             {
-                PreConfigureOptions(ClientWs.Options);
+                preConfigureOptions(clientWs.Options);
             }
 
             // Connect
-            return ClientWs.ConnectAsync(ServerUri, Token).ContinueWith(AfterConnect);
+            return clientWs.ConnectAsync(serverUri, token).ContinueWith(AfterConnect);
         }
 
         /// <summary>
@@ -227,18 +227,18 @@ namespace WatsonWebsocket
                 while (sw.Elapsed < timeOut)
                 {
                     if (token.IsCancellationRequested) break;
-                    ClientWs = new ClientWebSocket();
+                    clientWs = new ClientWebSocket();
 
-                    ClientWs.Options.Cookies = Cookies;
-                    ClientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(KeepAliveIntervalSeconds);
-                    if (PreConfigureOptions != null)
+                    clientWs.Options.Cookies = cookies;
+                    clientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds);
+                    if (preConfigureOptions != null)
                     {
-                        PreConfigureOptions(ClientWs.Options);
+                        preConfigureOptions(clientWs.Options);
                     }
 
                     try
                     {
-                        ClientWs.ConnectAsync(ServerUri, token).ContinueWith(AfterConnect).Wait();
+                        clientWs.ConnectAsync(serverUri, token).ContinueWith(AfterConnect).Wait();
                     }
                     catch (TaskCanceledException)
                     {
@@ -256,7 +256,7 @@ namespace WatsonWebsocket
                     Task.Delay(100).Wait();
 
                     // Check if connected
-                    if (ClientWs.State == WebSocketState.Open)
+                    if (clientWs.State == WebSocketState.Open)
                     {
                         return true;
                     }
@@ -296,18 +296,18 @@ namespace WatsonWebsocket
                 while (sw.Elapsed < timeOut)
                 {
                     if (token.IsCancellationRequested) break;
-                    ClientWs = new ClientWebSocket();
+                    clientWs = new ClientWebSocket();
 
-                    ClientWs.Options.Cookies = Cookies;
-                    ClientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(KeepAliveIntervalSeconds);
-                    if (PreConfigureOptions != null)
+                    clientWs.Options.Cookies = cookies;
+                    clientWs.Options.KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds);
+                    if (preConfigureOptions != null)
                     {
-                        PreConfigureOptions(ClientWs.Options);
+                        preConfigureOptions(clientWs.Options);
                     }
 
                     try
                     {
-                        await ClientWs.ConnectAsync(ServerUri, token).ContinueWith(AfterConnect);
+                        await clientWs.ConnectAsync(serverUri, token).ContinueWith(AfterConnect);
                     }
                     catch (TaskCanceledException)
                     {
@@ -325,7 +325,7 @@ namespace WatsonWebsocket
                     await Task.Delay(100);
 
                     // Check if connected
-                    if (ClientWs.State == WebSocketState.Open)
+                    if (clientWs.State == WebSocketState.Open)
                     {
                         return true;
                     }
@@ -348,7 +348,7 @@ namespace WatsonWebsocket
         /// </summary>
         public void Stop()
         {
-            Stop(WebSocketCloseStatus.NormalClosure, ClientWs.CloseStatusDescription);
+            Stop(WebSocketCloseStatus.NormalClosure, clientWs.CloseStatusDescription);
         }
 
         /// <summary>
@@ -356,7 +356,7 @@ namespace WatsonWebsocket
         /// </summary>
         public async Task StopAsync()
         {
-            await StopAsync(WebSocketCloseStatus.NormalClosure, ClientWs.CloseStatusDescription);
+            await StopAsync(WebSocketCloseStatus.NormalClosure, clientWs.CloseStatusDescription);
         }
 
         /// <summary>
@@ -366,7 +366,7 @@ namespace WatsonWebsocket
         /// <param name="reason">Close by reason.</param>
         public void Stop(WebSocketCloseStatus closeCode, string reason)
         { 
-            ClientWs.CloseOutputAsync(closeCode, reason, Token).Wait();
+            clientWs.CloseOutputAsync(closeCode, reason, token).Wait();
         } 
         
         /// <summary>
@@ -376,7 +376,7 @@ namespace WatsonWebsocket
         /// <param name="reason">Close by reason.</param>
         public async Task StopAsync(WebSocketCloseStatus closeCode, string reason)
         { 
-            await ClientWs.CloseOutputAsync(closeCode, reason, Token).ConfigureAwait(false);
+            await clientWs.CloseOutputAsync(closeCode, reason, token).ConfigureAwait(false);
         } 
 
         /// <summary>
@@ -399,7 +399,7 @@ namespace WatsonWebsocket
         /// <param name="msgType">Message type.</param>
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public async Task<bool> SendAsync(byte[] data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
+        public async Task<bool> SendAsync(byte[]? data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
         {
             return await MessageWriteAsync(new ArraySegment<byte>(data), msgType, token);
         }
@@ -431,7 +431,7 @@ namespace WatsonWebsocket
             string? result = null;
 
             var receivedEvent = new ManualResetEvent(false);
-            await AwaitingSyncResponseLock.WaitAsync(Token);
+            await awaitingSyncResponseLock.WaitAsync(this.token);
 
             await Task.Run(async () =>
             {
@@ -445,7 +445,7 @@ namespace WatsonWebsocket
                 receivedEvent.WaitOne(TimeSpan.FromSeconds(timeout));
 
                 AwaitingSyncResponseEvent = null;
-                AwaitingSyncResponseLock.Release();
+                awaitingSyncResponseLock.Release();
             });
 
             return result;
@@ -477,7 +477,7 @@ namespace WatsonWebsocket
             ArraySegment<byte> result = default;
 
             var receivedEvent = new ManualResetEvent(false);
-            await AwaitingSyncResponseLock.WaitAsync(Token);
+            await awaitingSyncResponseLock.WaitAsync(this.token);
 
             await Task.Run(async () =>
             {
@@ -491,7 +491,7 @@ namespace WatsonWebsocket
                 receivedEvent.WaitOne(TimeSpan.FromSeconds(timeout));
 
                 AwaitingSyncResponseEvent = null;
-                AwaitingSyncResponseLock.Release();
+                awaitingSyncResponseLock.Release();
             });
 
             return result;
@@ -510,35 +510,35 @@ namespace WatsonWebsocket
             if (!disposing) return;
             
             // see https://mcguirev10.com/2019/08/17/how-to-close-websocket-correctly.html  
-            if (ClientWs is {State: WebSocketState.Open})
+            if (clientWs is {State: WebSocketState.Open})
             {
                 Stop();
-                ClientWs.Dispose();
+                clientWs.Dispose();
             }
 
-            TokenSource.Cancel();
+            tokenSource.Cancel();
 
             Logger?.Invoke(Header + "dispose complete");
         }
 
         private void SetInvalidCertificateAcceptance()
         {
-            if (ClientWs.State == WebSocketState.Open)
+            if (clientWs.State == WebSocketState.Open)
             {
-                ClientWs.Options.RemoteCertificateValidationCallback += (_, _, _, _) => true;
+                clientWs.Options.RemoteCertificateValidationCallback += (_, _, _, _) => true;
             }
         }
 
         private void AfterConnect(Task task)
         {
             if (!task.IsCompleted) return;
-            if (ClientWs.State == WebSocketState.Open)
+            if (clientWs.State == WebSocketState.Open)
             {
                 Task.Run(() =>
                 {
-                    Task.Run(DataReceiver, Token);
+                    Task.Run(DataReceiver, token);
                     ServerConnected?.Invoke(this, EventArgs.Empty);
-                }, Token);
+                }, token);
             }
         }
 
@@ -550,7 +550,7 @@ namespace WatsonWebsocket
             {
                 while (true)
                 {
-                    if (Token.IsCancellationRequested) break;
+                    if (token.IsCancellationRequested) break;
                     var msg = await MessageReadAsync(buffer);
 
                     if (EnableStatistics)
@@ -597,14 +597,14 @@ namespace WatsonWebsocket
                 buffer = new byte[buffer.Length];
                 var bufferSegment = new ArraySegment<byte>(buffer);
 
-                if (ClientWs.State is WebSocketState.CloseReceived or WebSocketState.Closed)
+                if (clientWs.State is WebSocketState.CloseReceived or WebSocketState.Closed)
                 {
                     throw new WebSocketException("Websocket close received");
                 }
 
-                while (ClientWs.State == WebSocketState.Open)
+                while (clientWs.State == WebSocketState.Open)
                 {
-                    result = await ClientWs.ReceiveAsync(bufferSegment, Token);
+                    result = await clientWs.ReceiveAsync(bufferSegment, token);
                     if (result.Count > 0)
                     {
                         await dataMs.WriteAsync(buffer, 0, result.Count);
@@ -618,28 +618,28 @@ namespace WatsonWebsocket
                 }
             }
 
-            return new ServerMessageReceivedEventArgs(ServerIpPort, data, result.MessageType);
+            return new ServerMessageReceivedEventArgs(serverIpPort, data, result.MessageType);
         }
 
         private async Task<bool> MessageWriteAsync(ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken token)
         {
             var disconnectDetected = false;
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(Token, token);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(this.token, token);
             
             try
             {
-                if (ClientWs is not {State: WebSocketState.Open})
+                if (clientWs is not {State: WebSocketState.Open})
                 {
                     Logger?.Invoke(Header + "not connected");
                     disconnectDetected = true;
                     return false;
                 }
 
-                await SendLock.WaitAsync(Token).ConfigureAwait(false);
+                await sendLock.WaitAsync(this.token).ConfigureAwait(false);
 
                 try
                 {
-                    await ClientWs.SendAsync(data, msgType, true, token).ConfigureAwait(false);
+                    await clientWs.SendAsync(data, msgType, true, token).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -647,7 +647,7 @@ namespace WatsonWebsocket
                 }
                 finally
                 {
-                    SendLock.Release();
+                    sendLock.Release();
                 }
 
                 if (EnableStatistics)
@@ -660,7 +660,7 @@ namespace WatsonWebsocket
             }
             catch (TaskCanceledException)
             {
-                if (Token.IsCancellationRequested)
+                if (this.token.IsCancellationRequested)
                 {
                     Logger?.Invoke(Header + "canceled");
                     disconnectDetected = true;
@@ -674,7 +674,7 @@ namespace WatsonWebsocket
             }
             catch (OperationCanceledException)
             {
-                if (Token.IsCancellationRequested)
+                if (this.token.IsCancellationRequested)
                 {
                     Logger?.Invoke(Header + "canceled");
                     disconnectDetected = true;

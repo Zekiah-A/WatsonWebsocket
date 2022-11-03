@@ -9,9 +9,9 @@
             Event arguments for when a client connects to the server.
             </summary>
         </member>
-        <member name="P:WatsonWebsocket.ClientConnectedEventArgs.IpPort">
+        <member name="P:WatsonWebsocket.ClientConnectedEventArgs.Client">
             <summary>
-            The IP:port of the client.
+            The sender client instance.
             </summary>
         </member>
         <member name="P:WatsonWebsocket.ClientConnectedEventArgs.HttpRequest">
@@ -24,9 +24,14 @@
             Event arguments for when a client disconnects from the server.
             </summary>
         </member>
-        <member name="P:WatsonWebsocket.ClientDisconnectedEventArgs.IpPort">
+        <member name="P:WatsonWebsocket.ClientDisconnectedEventArgs.Client">
             <summary>
-            The IP:port of the client.
+            The sender client instance.
+            </summary>
+        </member>
+        <member name="T:WatsonWebsocket.ClientMetadata">
+            <summary>
+            The instance of a client connected to a server.
             </summary>
         </member>
         <member name="T:WatsonWebsocket.MessageReceivedEventArgs">
@@ -34,9 +39,9 @@
             Event arguments for when a message is received.
             </summary>
         </member>
-        <member name="P:WatsonWebsocket.MessageReceivedEventArgs.IpPort">
+        <member name="P:WatsonWebsocket.MessageReceivedEventArgs.Client">
             <summary>
-            The IP:port of the sender.
+            The sender client instance.
             </summary>
         </member>
         <member name="P:WatsonWebsocket.MessageReceivedEventArgs.Data">
@@ -47,6 +52,11 @@
         <member name="F:WatsonWebsocket.MessageReceivedEventArgs.MessageType">
             <summary>
             The type of payload included in the message (Binary or Text).
+            </summary>
+        </member>
+        <member name="P:WatsonWebsocket.ServerMessageReceivedEventArgs.IpPort">
+            <summary>
+            The sender client instance.
             </summary>
         </member>
         <member name="T:WatsonWebsocket.Statistics">
@@ -343,7 +353,7 @@
             Indicate whether or not invalid or otherwise unverifiable certificates should be accepted.  Default is true.
             </summary>
         </member>
-        <member name="F:WatsonWebsocket.WatsonWsServer.PermittedIpAddresses">
+        <member name="P:WatsonWebsocket.WatsonWsServer.PermittedIpAddresses">
             <summary>
             Specify the IP addresses that are allowed to connect.  If none are supplied, all IP addresses are permitted.
             </summary>
@@ -361,6 +371,11 @@
         <member name="P:WatsonWebsocket.WatsonWsServer.Stats">
             <summary>
             Statistics.
+            </summary>
+        </member>
+        <member name="P:WatsonWebsocket.WatsonWsServer.Clients">
+            <summary>
+            All clients currently connected to this server
             </summary>
         </member>
         <member name="M:WatsonWebsocket.WatsonWsServer.#ctor(System.String,System.Int32,System.Boolean)">
@@ -410,62 +425,56 @@
             Stop accepting new connections.
             </summary>
         </member>
-        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(System.String,System.String,System.Threading.CancellationToken)">
+        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(WatsonWebsocket.ClientMetadata,System.String,System.Threading.CancellationToken)">
             <summary>
             Send text data to the specified client, asynchronously.
             </summary>
-            <param name="ipPort">IP:port of the recipient client.</param>
+            <param name="client">The recipient client.</param>
             <param name="data">String containing data.</param>
             <param name="token">Cancellation token allowing for termination of this request.</param>
             <returns>Task with Boolean indicating if the message was sent successfully.</returns>
         </member>
-        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(System.String,System.Byte[],System.Threading.CancellationToken)">
+        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(WatsonWebsocket.ClientMetadata,System.Byte[],System.Threading.CancellationToken)">
             <summary>
             Send binary data to the specified client, asynchronously.
             </summary>
-            <param name="ipPort">IP:port of the recipient client.</param>
+            <param name="client">The recipient client.</param>
             <param name="data">Byte array containing data.</param> 
             <param name="token">Cancellation token allowing for termination of this request.</param>
             <returns>Task with Boolean indicating if the message was sent successfully.</returns>
         </member>
-        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(System.String,System.Byte[],System.Net.WebSockets.WebSocketMessageType,System.Threading.CancellationToken)">
+        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(WatsonWebsocket.ClientMetadata,System.Byte[],System.Net.WebSockets.WebSocketMessageType,System.Threading.CancellationToken)">
             <summary>
             Send binary data to the specified client, asynchronously.
             </summary>
-            <param name="ipPort">IP:port of the recipient client.</param>
+            <param name="client">The recipient client.</param>
             <param name="data">Byte array containing data.</param> 
             <param name="msgType">Web socket message type.</param>
             <param name="token">Cancellation token allowing for termination of this request.</param>
             <returns>Task with Boolean indicating if the message was sent successfully.</returns>
         </member>
-        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(System.String,System.ArraySegment{System.Byte},System.Net.WebSockets.WebSocketMessageType,System.Threading.CancellationToken)">
+        <member name="M:WatsonWebsocket.WatsonWsServer.SendAsync(WatsonWebsocket.ClientMetadata,System.ArraySegment{System.Byte},System.Net.WebSockets.WebSocketMessageType,System.Threading.CancellationToken)">
             <summary>
             Send binary data to the specified client, asynchronously.
             </summary>
-            <param name="ipPort">IP:port of the recipient client.</param>
+            <param name="client">The recipient client.</param>
             <param name="data">ArraySegment containing data.</param> 
             <param name="msgType">Web socket message type.</param>
             <param name="token">Cancellation token allowing for termination of this request.</param>
             <returns>Task with Boolean indicating if the message was sent successfully.</returns>
         </member>
-        <member name="M:WatsonWebsocket.WatsonWsServer.IsClientConnected(System.String)">
-            <summary>
-            Determine whether or not the specified client is connected to the server.
-            </summary>
-            <param name="ipPort">IP:port of the recipient client.</param>
-            <returns>Boolean indicating if the client is connected to the server.</returns>
-        </member>
-        <member name="M:WatsonWebsocket.WatsonWsServer.ListClients">
-            <summary>
-            List the IP:port of each connected client.
-            </summary>
-            <returns>A string list containing each client IP:port.</returns>
-        </member>
-        <member name="M:WatsonWebsocket.WatsonWsServer.DisconnectClient(System.String)">
+        <member name="M:WatsonWebsocket.WatsonWsServer.DisconnectClient(WatsonWebsocket.ClientMetadata)">
             <summary>
             Forcefully disconnect a client.
             </summary>
-            <param name="ipPort">IP:port of the client.</param>
+            <param name="client">The client being disconnected.</param>
+        </member>
+        <member name="M:WatsonWebsocket.WatsonWsServer.GetClientFromIpPort(System.String)">
+            <summary>
+            Gets the instance of a connected client from it's ipPort property.
+            </summary>
+            <param name="ipPort"></param>
+            <returns></returns>
         </member>
         <member name="M:WatsonWebsocket.WatsonWsServer.GetAwaiter">
             <summary>

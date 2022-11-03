@@ -15,22 +15,22 @@ namespace WatsonWebsocket
         /// <summary>
         /// The time at which the client or server was started.
         /// </summary>
-        public DateTime StartTime => _StartTime;
+        public DateTime StartTime { get; set; } = DateTime.Now.ToUniversalTime();
 
         /// <summary>
         /// The amount of time which the client or server has been up.
         /// </summary>
-        public TimeSpan UpTime => DateTime.Now.ToUniversalTime() - _StartTime;
+        public TimeSpan UpTime => DateTime.Now.ToUniversalTime() - StartTime;
 
         /// <summary>
         /// The number of bytes received.
         /// </summary>
-        public long ReceivedBytes => _ReceivedBytes;
+        public long ReceivedBytes;
 
         /// <summary>
         /// The number of messages received.
         /// </summary>
-        public long ReceivedMessages => _ReceivedMessages;
+        public long ReceivedMessages;
 
         /// <summary>
         /// Average received message size in bytes.
@@ -39,9 +39,9 @@ namespace WatsonWebsocket
         {
             get
             {
-                if (_ReceivedBytes > 0 && _ReceivedMessages > 0)
+                if (ReceivedBytes > 0 && ReceivedMessages > 0)
                 {
-                    return (int)(_ReceivedBytes / _ReceivedMessages);
+                    return (int)(ReceivedBytes / ReceivedMessages);
                 }
 
                 return 0;
@@ -51,12 +51,13 @@ namespace WatsonWebsocket
         /// <summary>
         /// The number of bytes sent.
         /// </summary>
-        public long SentBytes => _SentBytes;
+        public long SentBytes;
 
         /// <summary>
         /// The number of messages sent.
         /// </summary>
-        public long SentMessages => _SentMessages;
+        public long SentMessages;
+
 
         /// <summary>
         /// Average sent message size in bytes.
@@ -65,9 +66,9 @@ namespace WatsonWebsocket
         {
             get
             {
-                if (_SentBytes > 0 && _SentMessages > 0)
+                if (SentBytes > 0 && SentMessages > 0)
                 {
-                    return (int)(_SentBytes / _SentMessages);
+                    return (int)(SentBytes / SentMessages);
                 }
 
                 return 0;
@@ -78,11 +79,6 @@ namespace WatsonWebsocket
 
         #region Private-Members
 
-        private readonly DateTime _StartTime = DateTime.Now.ToUniversalTime();
-        private long _ReceivedBytes;
-        private long _ReceivedMessages;
-        private long _SentBytes;
-        private long _SentMessages;
 
         #endregion
 
@@ -108,7 +104,7 @@ namespace WatsonWebsocket
         {
             var ret =
                 "--- Statistics ---" + Environment.NewLine +
-                "    Started     : " + _StartTime + Environment.NewLine +
+                "    Started     : " + StartTime + Environment.NewLine +
                 "    Uptime      : " + UpTime + Environment.NewLine +
                 "    Received    : " + Environment.NewLine +
                 "       Bytes    : " + ReceivedBytes + Environment.NewLine +
@@ -126,10 +122,10 @@ namespace WatsonWebsocket
         /// </summary>
         public void Reset()
         {
-            _ReceivedBytes = 0;
-            _ReceivedMessages = 0;
-            _SentBytes = 0;
-            _SentMessages = 0;
+            ReceivedBytes = 0;
+            ReceivedMessages = 0;
+            SentBytes = 0;
+            SentMessages = 0;
         }
 
         #endregion
@@ -138,22 +134,22 @@ namespace WatsonWebsocket
 
         internal void IncrementReceivedMessages()
         {
-            _ReceivedMessages = Interlocked.Increment(ref _ReceivedMessages);
+            ReceivedMessages = Interlocked.Increment(ref ReceivedMessages);
         }
 
         internal void IncrementSentMessages()
         {
-            _SentMessages = Interlocked.Increment(ref _SentMessages);
+            SentMessages = Interlocked.Increment(ref SentMessages);
         }
 
         internal void AddReceivedBytes(long bytes)
         {
-            _ReceivedBytes = Interlocked.Add(ref _ReceivedBytes, bytes);
+            ReceivedBytes = Interlocked.Add(ref ReceivedBytes, bytes);
         }
 
         internal void AddSentBytes(long bytes)
         {
-            _SentBytes = Interlocked.Add(ref _SentBytes, bytes);
+            SentBytes = Interlocked.Add(ref SentBytes, bytes);
         }
 
         #endregion

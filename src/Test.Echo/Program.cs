@@ -8,7 +8,7 @@ namespace Test.Echo;
 
 internal static class Program
 {
-    private const string Hostname = "localhost";
+    private const string? Hostname = "localhost";
     private const int Port = 8000;
     private static WatsonWsServer? server;
     private static string? clientIpPort;
