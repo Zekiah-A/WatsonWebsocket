@@ -1,87 +1,86 @@
-﻿namespace Test.Integrity
+﻿namespace Test.Integrity;
+
+internal class Statistics
 {
-    internal class Statistics
+    public long MsgSent 
+    { 
+        get
+        {
+            lock (_StatsLock)
+            {
+                return _MsgSent;
+            }
+        }
+    }
+
+    public long MsgRecv
     {
-        public long MsgSent 
-        { 
-            get
-            {
-                lock (_StatsLock)
-                {
-                    return _MsgSent;
-                }
-            }
-        }
-
-        public long MsgRecv
+        get
         {
-            get
+            lock (_StatsLock)
             {
-                lock (_StatsLock)
-                {
-                    return _MsgRecv;
-                }
+                return _MsgRecv;
             }
         }
+    }
 
-        public long BytesSent
+    public long BytesSent
+    {
+        get
         {
-            get
+            lock (_StatsLock)
             {
-                lock (_StatsLock)
-                {
-                    return _BytesSent;
-                }
+                return _BytesSent;
             }
         }
+    }
         
-        public long BytesRecv
-        {
-            get
-            {
-                lock (_StatsLock)
-                {
-                    return _BytesRecv;
-                }
-            }
-        }
-
-        private readonly object _StatsLock = new object();
-
-        private long _MsgSent;
-        private long _MsgRecv;
-        private long _BytesSent;
-        private long _BytesRecv;
-
-        public Statistics()
-        {
-            _MsgSent = 0;
-            _MsgRecv = 0;
-            _BytesSent = 0;
-            _BytesRecv = 0;
-        }
-
-        public override string ToString()
-        {
-            return "Sent [" + _MsgSent + " msgs, " + _BytesSent + " bytes] Received [" + _MsgRecv + " msgs, " + _BytesRecv + " bytes]";
-        }
-
-        public void AddSent(long len)
+    public long BytesRecv
+    {
+        get
         {
             lock (_StatsLock)
             {
-                _MsgSent++;
-                _BytesSent += len;
+                return _BytesRecv;
             }
         }
+    }
 
-        public void AddRecv(long len)
+    private readonly object _StatsLock = new object();
+
+    private long _MsgSent;
+    private long _MsgRecv;
+    private long _BytesSent;
+    private long _BytesRecv;
+
+    public Statistics()
+    {
+        _MsgSent = 0;
+        _MsgRecv = 0;
+        _BytesSent = 0;
+        _BytesRecv = 0;
+    }
+
+    public override string ToString()
+    {
+        return "Sent [" + _MsgSent + " msgs, " + _BytesSent + " bytes] Received [" + _MsgRecv + " msgs, " + _BytesRecv + " bytes]";
+    }
+
+    public void AddSent(long len)
+    {
+        lock (_StatsLock)
         {
-            lock (_StatsLock)
-            {
-                _MsgRecv++;
-                _BytesRecv += len;
-            }
+            _MsgSent++;
+            _BytesSent += len;
+        }
+    }
+
+    public void AddRecv(long len)
+    {
+        lock (_StatsLock)
+        {
+            _MsgRecv++;
+            _BytesRecv += len;
         }
     }
 }

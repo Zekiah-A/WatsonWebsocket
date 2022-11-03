@@ -76,7 +76,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// All clients currently connected to this server
         /// </summary>
-        public List<ClientMetadata> Clients { get; set; }
+        public List<ClientMetadata?> Clients { get; set; }
         #endregion
 
         #region Private-Members
@@ -116,7 +116,7 @@ namespace WatsonWebsocket
 
             TokenSource = new CancellationTokenSource();
             Token = TokenSource.Token;
-            Clients = new List<ClientMetadata>();
+            Clients = new List<ClientMetadata?>();
         }
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace WatsonWebsocket
 
             TokenSource = new CancellationTokenSource();
             Token = TokenSource.Token;
-            Clients = new List<ClientMetadata>();
+            Clients = new List<ClientMetadata?>();
         }
 
         /// <summary>
@@ -193,7 +193,7 @@ namespace WatsonWebsocket
 
             TokenSource = new CancellationTokenSource();
             Token = TokenSource.Token;
-            Clients = new List<ClientMetadata>();
+            Clients = new List<ClientMetadata?>();
         }
 
         #endregion
@@ -275,7 +275,7 @@ namespace WatsonWebsocket
         /// <param name="data">String containing data.</param>
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, string data, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata? client, string? data, CancellationToken token = default)
         {
             if (string.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
             return MessageWriteAsync(client, new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)), WebSocketMessageType.Text, token);
@@ -288,7 +288,7 @@ namespace WatsonWebsocket
         /// <param name="data">Byte array containing data.</param> 
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, byte[] data, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata? client, byte[] data, CancellationToken token = default)
         {
             return SendAsync(client, new ArraySegment<byte>(data), WebSocketMessageType.Binary, token);
         }
@@ -301,7 +301,7 @@ namespace WatsonWebsocket
         /// <param name="msgType">Web socket message type.</param>
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, byte[] data, WebSocketMessageType msgType, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata? client, byte[] data, WebSocketMessageType msgType, CancellationToken token = default)
         {
             return SendAsync(client, new ArraySegment<byte>(data), msgType, token);
         }
@@ -314,7 +314,7 @@ namespace WatsonWebsocket
         /// <param name="msgType">Web socket message type.</param>
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata? client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
         {
             if (data.Array == null || data.Count < 1) throw new ArgumentNullException(nameof(data));
             return MessageWriteAsync(client, data, msgType, token);
@@ -338,7 +338,7 @@ namespace WatsonWebsocket
         /// </summary>
         /// <param name="ipPort"></param>
         /// <returns></returns>
-        public ClientMetadata? GetClientFromIpPort(string ipPort)
+        public ClientMetadata? GetClientFromIpPort(string? ipPort)
         {
             return Clients.FirstOrDefault(target => target.IpPort == ipPort);
         }
@@ -489,7 +489,7 @@ namespace WatsonWebsocket
             }
         }
 
-        private async Task DataReceiver(ClientMetadata md)
+        private async Task DataReceiver(ClientMetadata? md)
         { 
             var header = "[WatsonWsServer " + md.IpPort + "] ";
             Logger?.Invoke(header + "starting data receiver");
@@ -537,7 +537,7 @@ namespace WatsonWebsocket
             }
         }
          
-        private async Task<MessageReceivedEventArgs> MessageReadAsync(ClientMetadata md, byte[] buffer)
+        private async Task<MessageReceivedEventArgs> MessageReadAsync(ClientMetadata? md, byte[] buffer)
         {
             var header = "[WatsonWsServer " + md.IpPort + "] ";
 
@@ -577,7 +577,7 @@ namespace WatsonWebsocket
             }
         }
  
-        private async Task<bool> MessageWriteAsync(ClientMetadata md, ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken token)
+        private async Task<bool> MessageWriteAsync(ClientMetadata? md, ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken token)
         {
             var header = "[WatsonWsServer " + md.IpPort + "] ";
 
