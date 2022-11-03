@@ -5,9 +5,9 @@ using System.Threading;
 
 namespace WatsonWebsocket
 {
-    internal class ClientMetadata
+    public class ClientMetadata
     { 
-        internal string IpPort => Ip + ":" + Port;
+        public string IpPort => Ip + ":" + Port;
 
         private string Ip;
         private int Port;

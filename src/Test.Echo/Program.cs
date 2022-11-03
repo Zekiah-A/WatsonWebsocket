@@ -43,7 +43,7 @@ namespace Test.Echo
                 {
                     // echo it back
                     serverStats.AddRecv(e.Data.Count);
-                    await server.SendAsync(e.IpPort, e.Data);
+                    await server.SendAsync(e, e.Data, null);
                     serverStats.AddSent(e.Data.Count);
                 };
 

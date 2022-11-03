@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -79,6 +78,15 @@ namespace WatsonWebsocket
         /// </summary>
         public Statistics Stats => _Stats;
 
+        /// <summary>
+        /// All clients currently connected to this server
+        /// </summary>
+        public List<ClientMetadata> Clients 
+        {
+            get => _Clients;
+            set => _Clients = value;
+        }
+
         #endregion
 
         #region Private-Members
@@ -88,7 +96,7 @@ namespace WatsonWebsocket
         private List<string> _ListenerPrefixes = new List<string>();
         private HttpListener _Listener;
         private readonly object _PermittedIpsLock = new object();
-        private ConcurrentDictionary<string, ClientMetadata> _Clients; 
+        private List<ClientMetadata> _Clients; 
         private CancellationTokenSource _TokenSource;
         private CancellationToken _Token; 
         private Task _AcceptConnectionsTask;
@@ -122,7 +130,7 @@ namespace WatsonWebsocket
 
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
-            _Clients = new ConcurrentDictionary<string, ClientMetadata>();
+            _Clients = new List<ClientMetadata>();
         }
 
         /// <summary>
@@ -152,7 +160,7 @@ namespace WatsonWebsocket
 
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
-            _Clients = new ConcurrentDictionary<string, ClientMetadata>();
+            _Clients = new List<ClientMetadata>();
         }
 
         /// <summary>
@@ -199,7 +207,7 @@ namespace WatsonWebsocket
 
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
-            _Clients = new ConcurrentDictionary<string, ClientMetadata>();
+            _Clients = new List<ClientMetadata>();
         }
 
         #endregion
@@ -277,64 +285,66 @@ namespace WatsonWebsocket
         /// <summary>
         /// Send text data to the specified client, asynchronously.
         /// </summary>
-        /// <param name="ipPort">IP:port of the recipient client.</param>
+        /// <param name="client">The recipient client.</param>
         /// <param name="data">String containing data.</param>
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(string ipPort, string data, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, string data, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            if (!_Clients.TryGetValue(ipPort, out ClientMetadata client))
+            if (_Clients.FirstOrDefault(client) is null)
             {
-                Logger?.Invoke(_Header + "unable to find client " + ipPort);
+                Logger?.Invoke(_Header + "unable to find client " + client.IpPort);
                 return Task.FromResult(false);
             }
 
             Task<bool> task = MessageWriteAsync(client, new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)), WebSocketMessageType.Text, token);
 
-            client = null;
             return task;
         }
 
         /// <summary>
         /// Send binary data to the specified client, asynchronously.
         /// </summary>
-        /// <param name="ipPort">IP:port of the recipient client.</param>
+        /// <param name="client">The recipient client.</param>
         /// <param name="data">Byte array containing data.</param> 
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(string ipPort, byte[] data, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, byte[] data, CancellationToken token = default)
         {
-            return SendAsync(ipPort, new ArraySegment<byte>(data), WebSocketMessageType.Binary, token);
+            return SendAsync(client, new ArraySegment<byte>(data), WebSocketMessageType.Binary, token);
         }
 
         /// <summary>
         /// Send binary data to the specified client, asynchronously.
         /// </summary>
-        /// <param name="ipPort">IP:port of the recipient client.</param>
+        /// <param name="client">The recipient client.</param>
         /// <param name="data">Byte array containing data.</param> 
         /// <param name="msgType">Web socket message type.</param>
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(string ipPort, byte[] data, WebSocketMessageType msgType, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, byte[] data, WebSocketMessageType msgType, CancellationToken token = default)
         {
-            return SendAsync(ipPort, new ArraySegment<byte>(data), msgType, token);
+            return SendAsync(client, new ArraySegment<byte>(data), msgType, token);
         }
 
         /// <summary>
         /// Send binary data to the specified client, asynchronously.
         /// </summary>
-        /// <param name="ipPort">IP:port of the recipient client.</param>
+        /// <param name="client">The recipient client.</param>
         /// <param name="data">ArraySegment containing data.</param> 
         /// <param name="msgType">Web socket message type.</param>
         /// <param name="token">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(string ipPort, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
         {
             if (data.Array == null || data.Count < 1) throw new ArgumentNullException(nameof(data));
-            if (!_Clients.TryGetValue(ipPort, out ClientMetadata client))
+            
+            
+            
+            if (_Clients.FirstOrDefault(client) is null) 
             {
-                Logger?.Invoke(_Header + "unable to find client " + ipPort);
+                Logger?.Invoke(_Header + "unable to find client " + client.IpPort);
                 return Task.FromResult(false);
             }
 
@@ -345,39 +355,18 @@ namespace WatsonWebsocket
         }
 
         /// <summary>
-        /// Determine whether or not the specified client is connected to the server.
-        /// </summary>
-        /// <param name="ipPort">IP:port of the recipient client.</param>
-        /// <returns>Boolean indicating if the client is connected to the server.</returns>
-        public bool IsClientConnected(string ipPort)
-        {
-            return _Clients.TryGetValue(ipPort, out _);
-        }
-
-        /// <summary>
-        /// List the IP:port of each connected client.
-        /// </summary>
-        /// <returns>A string list containing each client IP:port.</returns>
-        public IEnumerable<string> ListClients()
-        {
-            return _Clients.Keys.ToArray();
-        }
-
-        /// <summary>
         /// Forcefully disconnect a client.
         /// </summary>
-        /// <param name="ipPort">IP:port of the client.</param>
-        public void DisconnectClient(string ipPort)
+        /// <param name="client">The client being disconnected.</param>
+        public void DisconnectClient(ClientMetadata client)
         { 
-            if (_Clients.TryGetValue(ipPort, out var client))
+            if (_Clients.FirstOrDefault(client) is not null)
             {
-                lock (client)
-                {
-                    // lock because CloseOutputAsync can fail with InvalidOperationAsync with overlapping operations
-                    client.Ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token).Wait();
-                    client.TokenSource.Cancel();
-                    client.Ws.Dispose();
-                }
+                //TODO: Do we need an alternative to lock here?
+                // lock because CloseOutputAsync can fail with InvalidOperationAsync with overlapping operations
+                client.Ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token).Wait();
+                client.TokenSource.Cancel();
+                client.Ws.Dispose();
             }
         }
 
@@ -404,10 +393,10 @@ namespace WatsonWebsocket
             {
                 if (_Clients != null)
                 {
-                    foreach (KeyValuePair<string, ClientMetadata> client in _Clients)
+                    foreach (var client in _Clients)
                     {
-                        client.Value.Ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "", client.Value.TokenSource.Token);
-                        client.Value.TokenSource.Cancel();
+                        client.Ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token);
+                        client.TokenSource.Cancel();
                     }
                 }
 
@@ -500,7 +489,7 @@ namespace WatsonWebsocket
                             WebSocket ws = wsContext.WebSocket;
                             ClientMetadata md = new ClientMetadata(ctx, ws, wsContext, tokenSource);
                              
-                            _Clients.TryAdd(md.IpPort, md);
+                            _Clients.Add(md);
 
                             ClientConnected?.Invoke(this, new ClientConnectedEventArgs(md.IpPort, ctx.Request));
                             await Task.Run(() => DataReceiver(md), token);
@@ -585,11 +574,10 @@ namespace WatsonWebsocket
             }
             finally
             { 
-                string ipPort = md.IpPort;
                 ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(md.IpPort));
                 md.Ws.Dispose();
                 Logger?.Invoke(header + "disconnected");
-                _Clients.TryRemove(ipPort, out _);
+                _Clients.Remove(md);
             }
         }
          

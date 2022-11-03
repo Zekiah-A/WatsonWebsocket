@@ -81,13 +81,12 @@ namespace Test.Server
                         break;
 
                     case "list":
-                        var clients = new List<string>(_Server.ListClients());
-                        if (clients.Count > 0)
+                        if (_Server.Clients.Count > 0)
                         {
                             Console.WriteLine("Clients");
-                            foreach (string curr in clients)
+                            foreach (ClientMetadata client in _Server.Clients)
                             {
-                                Console.WriteLine("  " + curr);
+                                Console.WriteLine("  " + client.IpPort);
                             }
                         }
                         else
