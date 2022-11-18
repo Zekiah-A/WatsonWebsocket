@@ -11,6 +11,8 @@ namespace WatsonWebsocket;
 public class ClientMetadata
 { 
     public string IpPort => ip + ":" + port;
+    public WebSocketContext WsContext => wsContext;
+    public HttpListenerContext HttpContext => httpContext;
 
     private readonly string ip;
     private readonly int port;
