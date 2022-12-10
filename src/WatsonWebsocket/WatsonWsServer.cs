@@ -5,15 +5,14 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
 using System.Text; 
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.WebSockets;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace WatsonWebsocket
 {    
@@ -25,7 +24,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// Determine if the server is listening for new connections.
         /// </summary>
-        public bool IsListening => true; //listener is { IsListening: true };
+        public bool IsListening = false; //{ get; set; } = false; //listener is { IsListening: true };
 
         /// <summary>
         /// Enable or disable statistics.
@@ -63,12 +62,6 @@ namespace WatsonWebsocket
         public Action<string>? Logger;
 
         /// <summary>
-        /// Method to invoke when receiving a raw (non-websocket) HTTP request.
-        /// </summary>
-        //TODO: WE ARE MOVING TO KESTREL BOYS //        public Action<HttpListenerContext>? HttpHandler;
-        
-
-        /// <summary>
         /// Statistics.
         /// </summary>
         public Statistics? Stats { get; set; }
@@ -82,7 +75,6 @@ namespace WatsonWebsocket
         private readonly List<string> listenerPrefixes = new();
         private CancellationTokenSource tokenSource;
         private CancellationToken token; 
-        private Task? acceptConnectionsTask;
         private IHost listener;
 
         /// <summary>
@@ -113,12 +105,21 @@ namespace WatsonWebsocket
                         app.Use(AcceptConnectionsAsync);
                     });
                 })
+                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Critical))
                 .Build();
             
             tokenSource = new CancellationTokenSource();
             token = tokenSource.Token;
             Clients = new List<ClientMetadata>();
         }
+
+        /// <summary>
+        /// Initialises watson websocket server with a listener URI.
+        /// Be sure to call 'Start()' to start the server.
+        /// By default, Watson Websocket will listen on http://localhost:9000/.
+        /// </summary>
+        /// <param name="uri">URI which socket will listen upon.</param>
+        public WatsonWsServer(Uri uri) : this(uri.Port, uri.Scheme is "wss" or "https", uri.Host) { }
         
         /// <summary>
         /// Tear down the server and dispose of background workers.
@@ -133,6 +134,26 @@ namespace WatsonWebsocket
         /// </summary>
         public void Start()
         {
+            InitialiseListener();
+            listener.Start();
+        }
+
+        /// <summary>
+        /// Start accepting new connections.
+        /// </summary>
+        /// <returns>Task.</returns>
+        public Task StartAsync(CancellationToken cancellationToken = default)
+        {
+            InitialiseListener();
+            listener.StartAsync(cancellationToken);
+            return Task.Delay(1);
+        }
+        
+        /// <summary>
+        ///  Used by start and StartAsync to initialise the listener before starting the server. 
+        /// </summary>
+        private void InitialiseListener()
+        {
             if (IsListening) throw new InvalidOperationException("Watson websocket server is already running.");
 
             Stats = new Statistics();
@@ -142,34 +163,7 @@ namespace WatsonWebsocket
             
             tokenSource = new CancellationTokenSource();
             token = tokenSource.Token;
-            listener.StartAsync();
         }
-
-        /// <summary>
-        /// Start accepting new connections.
-        /// </summary>
-        /// <returns>Task.</returns>
-        /*public Task StartAsync(CancellationToken token = default)
-        {
-            if (IsListening) throw new InvalidOperationException("Watson websocket server is already running.");
-
-            Stats = new Statistics();
-
-            var logMsg = Header + "starting on:";
-            foreach (var prefix in listenerPrefixes) logMsg += " " + prefix;
-            Logger?.Invoke(logMsg);
-
-            if (AcceptInvalidCertificates) SetInvalidCertificateAcceptance();
-
-            tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-            this.token = token;
-
-            listener.Start();
-
-            acceptConnectionsTask = Task.Run(() => AcceptConnections(this.token), this.token);
-
-            return Task.Delay(1);
-        }*/
 
         /// <summary>
         /// Stop accepting new connections.
@@ -188,12 +182,12 @@ namespace WatsonWebsocket
         /// </summary>
         /// <param name="client">The recipient client.</param>
         /// <param name="data">String containing data.</param>
-        /// <param name="token">Cancellation token allowing for termination of this request.</param>
+        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, string data, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, string data, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return MessageWriteAsync(client, new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)), WebSocketMessageType.Text, token);
+            return MessageWriteAsync(client, new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)), WebSocketMessageType.Text, cancellationToken);
         }
 
         /// <summary>
@@ -201,11 +195,11 @@ namespace WatsonWebsocket
         /// </summary>
         /// <param name="client">The recipient client.</param>
         /// <param name="data">Byte array containing data.</param> 
-        /// <param name="token">Cancellation token allowing for termination of this request.</param>
+        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, byte[] data, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, byte[] data, CancellationToken cancellationToken = default)
         {
-            return SendAsync(client, new ArraySegment<byte>(data), WebSocketMessageType.Binary, token);
+            return SendAsync(client, new ArraySegment<byte>(data), WebSocketMessageType.Binary, cancellationToken);
         }
 
         /// <summary>
@@ -214,11 +208,11 @@ namespace WatsonWebsocket
         /// <param name="client">The recipient client.</param>
         /// <param name="data">Byte array containing data.</param> 
         /// <param name="msgType">Web socket message type.</param>
-        /// <param name="token">Cancellation token allowing for termination of this request.</param>
+        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, byte[] data, WebSocketMessageType msgType, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, byte[] data, WebSocketMessageType msgType, CancellationToken cancellationToken = default)
         {
-            return SendAsync(client, new ArraySegment<byte>(data), msgType, token);
+            return SendAsync(client, new ArraySegment<byte>(data), msgType, cancellationToken);
         }
 
         /// <summary>
@@ -227,12 +221,12 @@ namespace WatsonWebsocket
         /// <param name="client">The recipient client.</param>
         /// <param name="data">ArraySegment containing data.</param> 
         /// <param name="msgType">Web socket message type.</param>
-        /// <param name="token">Cancellation token allowing for termination of this request.</param>
+        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken cancellationToken = default)
         {
             if (data.Array == null || data.Count < 1) throw new ArgumentNullException(nameof(data));
-            return MessageWriteAsync(client, data, msgType, token);
+            return MessageWriteAsync(client, data, msgType, cancellationToken);
         }
 
         /// <summary>
@@ -241,8 +235,6 @@ namespace WatsonWebsocket
         /// <param name="client">The client being disconnected.</param>
         public void DisconnectClient(ClientMetadata client)
         {
-            //TODO: Do we need an alternative to lock here?
-            // lock because CloseOutputAsync can fail with InvalidOperationAsync with overlapping operations
             client.Ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token).Wait();
             client.TokenSource.Cancel();
             client.Ws.Dispose();
@@ -257,16 +249,7 @@ namespace WatsonWebsocket
         {
             return Clients.FirstOrDefault(target => target.IpPort == ipPort);
         }
-
-        /// <summary>
-        /// Retrieve the awaiter.
-        /// </summary>
-        /// <returns>TaskAwaiter.</returns>
-        public TaskAwaiter? GetAwaiter()
-        {
-            return acceptConnectionsTask?.GetAwaiter();
-        }
-
+        
         /// <summary>
         /// Tear down the server and dispose of background workers.
         /// </summary>
@@ -317,7 +300,10 @@ namespace WatsonWebsocket
                     var md = new ClientMetadata(context, ws, tokenSource);
                     Clients.Add(md);
 
-                    ClientConnected?.Invoke(this, new ClientConnectedEventArgs(md, context.Request));
+#pragma warning disable CS4014
+                    Task.Run(() => ClientConnected?.Invoke(this, new ClientConnectedEventArgs(md, context.Request)))
+                        .ConfigureAwait(false);
+#pragma warning restore CS4014
                     await DataReceiver(md);
                 }
             }
@@ -336,25 +322,29 @@ namespace WatsonWebsocket
             }
         }
         
-        private async Task DataReceiver(ClientMetadata? md)
+        private async Task DataReceiver(ClientMetadata md)
         { 
             var header = "[WatsonWsServer " + md.IpPort + "] ";
             Logger?.Invoke(header + "starting data receiver");
             var buffer = new byte[65536];
 
             try
-            { 
+            {
+                
                 while (true)
                 {
                     var msg = await MessageReadAsync(md, buffer).ConfigureAwait(false);
-
+                    
                     if (EnableStatistics)
                     {
                         Stats?.IncrementReceivedMessages();
                         Stats?.AddReceivedBytes(msg.Data.Count);
                     }
 
-                    MessageReceived?.Invoke(this, msg);
+#pragma warning disable CS4014
+                    Task.Run(() => MessageReceived?.Invoke(this, msg), md.TokenSource.Token)
+                        .ConfigureAwait(false);
+#pragma warning restore CS4014
                 }
             }
             catch (Exception e)
@@ -368,14 +358,18 @@ namespace WatsonWebsocket
             }
             finally
             { 
-                ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(md));
+#pragma warning disable CS4014
+                Task.Run(() => ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(md)))
+                    .ConfigureAwait(false);
+#pragma warning restore CS4014
+                
                 md.Ws.Dispose();
                 Logger?.Invoke(header + "disconnected");
                 Clients.Remove(md);
             }
         }
          
-        private async Task<MessageReceivedEventArgs> MessageReadAsync(ClientMetadata? md, byte[] buffer)
+        private async Task<MessageReceivedEventArgs> MessageReadAsync(ClientMetadata md, byte[] buffer)
         {
             var header = "[WatsonWsServer " + md.IpPort + "] ";
 
@@ -415,13 +409,13 @@ namespace WatsonWebsocket
             }
         }
  
-        private async Task<bool> MessageWriteAsync(ClientMetadata? md, ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken token)
+        private async Task<bool> MessageWriteAsync(ClientMetadata md, ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken cancellationToken)
         {
             var header = "[WatsonWsServer " + md.IpPort + "] ";
 
             var tokens = new CancellationToken[3];
-            tokens[0] = this.token;
-            tokens[1] = token;
+            tokens[0] = token;
+            tokens[1] = cancellationToken;
             tokens[2] = md.TokenSource.Token;
 
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(tokens);
@@ -452,7 +446,7 @@ namespace WatsonWebsocket
                 {
                     Logger?.Invoke(header + "server canceled");
                 }
-                else if (token.IsCancellationRequested)
+                else if (cancellationToken.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "message send canceled");
                 }
@@ -467,7 +461,7 @@ namespace WatsonWebsocket
                 {
                     Logger?.Invoke(header + "canceled");
                 }
-                else if (token.IsCancellationRequested)
+                else if (cancellationToken.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "message send canceled");
                 }

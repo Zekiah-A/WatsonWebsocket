@@ -47,13 +47,17 @@ internal static class Program
                 serverStats.AddRecv(e.Data.Count);
             };
 
-            // server.Logger = Logger;
+            server.ServerStopped += (s, e) =>
+            {
+                Console.WriteLine("*** Server stopped: ");
+            };
+            
             server.Start();
 
             for (var i = 0; i < NumClients; i++)
             {
                 Console.WriteLine("Starting client " + (i + 1) + "...");
-                Task.Run(() => ClientTask());
+                Task.Run(ClientTask);
                 Task.Delay(250).Wait();
             }
 
