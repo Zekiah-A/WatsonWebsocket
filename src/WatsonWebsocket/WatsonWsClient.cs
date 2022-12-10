@@ -15,8 +15,6 @@ namespace WatsonWebsocket
     /// </summary>
     public class WatsonWsClient : IDisposable
     {
-        #region Public-Members
-
         /// <summary>
         /// Indicate whether or not invalid or otherwise unverifiable certificates should be accepted.  Default is true.
         /// </summary>
@@ -69,10 +67,6 @@ namespace WatsonWebsocket
         /// </summary>
         public Statistics Stats { get; set; } = new();
 
-        #endregion
-
-        #region Private-Members
-
         private const string Header = "[WatsonWsClient] ";
         private readonly Uri serverUri;
         private readonly string? serverIp;
@@ -90,10 +84,6 @@ namespace WatsonWebsocket
 
         private readonly CancellationTokenSource tokenSource = new();
         private readonly CancellationToken token;
-
-        #endregion
-
-        #region Constructors-and-Factories
 
         /// <summary>
         /// Initializes the Watson websocket client.
@@ -135,10 +125,6 @@ namespace WatsonWebsocket
 
             clientWs = new ClientWebSocket();
         }
-
-        #endregion
-
-        #region Public-Methods
 
         /// <summary>
         /// Tear down the client and dispose of background workers.
@@ -497,10 +483,6 @@ namespace WatsonWebsocket
             return result;
         }
 
-        #endregion
-
-        #region Private-Methods
-
         /// <summary>
         /// Tear down the client and dispose of background workers.
         /// </summary>
@@ -731,7 +713,5 @@ namespace WatsonWebsocket
                 }
             }
         }
-
-        #endregion
     }
 }

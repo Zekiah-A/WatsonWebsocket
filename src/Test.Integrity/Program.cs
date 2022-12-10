@@ -29,8 +29,6 @@ internal static class Program
 
         using (server = new WatsonWsServer(Hostname, Port, false))
         {
-            #region Start-Server
-
             serverStats = new Statistics();
 
             server.ClientConnected += (s, e) =>
@@ -52,10 +50,6 @@ internal static class Program
             // server.Logger = Logger;
             server.Start();
 
-            #endregion
-
-            #region Start-and-Wait-for-Clients
-
             for (var i = 0; i < NumClients; i++)
             {
                 Console.WriteLine("Starting client " + (i + 1) + "...");
@@ -75,10 +69,6 @@ internal static class Program
             Console.WriteLine("All clients connected!");
             serverReady = true;
 
-            #endregion
-
-            #region Send-Messages-to-Clients
-
             for (var i = 0; i < MessagesPerClient; i++)
             {
                 for (var j = 0; j < NumClients; j++)
@@ -87,10 +77,6 @@ internal static class Program
                     serverStats.AddSent(msgData.Length);
                 }
             }
-
-            #endregion
-
-            #region Wait-for-Clients
 
             while (true)
             {
@@ -102,10 +88,6 @@ internal static class Program
                 foreach (var curr in server.Clients) Console.WriteLine("| " + curr.IpPort);
             }
 
-            #endregion
-
-            #region Statistics
-
             Console.WriteLine("");
             Console.WriteLine("");
             Console.WriteLine("Server statistics:");
@@ -114,8 +96,6 @@ internal static class Program
             Console.WriteLine("Client statistics");
             foreach (var stats in ClientStats) Console.WriteLine("  " + stats.ToString());
             Console.WriteLine("");
-
-            #endregion
         }
     }
 
@@ -129,8 +109,6 @@ internal static class Program
         var stats = new Statistics();
 
         using var client = new WatsonWsClient(Hostname, Port, false);
-
-        #region Start-Client
 
         client.ServerConnected += (s, e) =>
         {
@@ -150,10 +128,6 @@ internal static class Program
         // client.Logger = Logger;
         client.Start();
 
-        #endregion
-
-        #region Wait-for-Server-Ready
-
         while (!serverReady)
         {
             Console.WriteLine("Client waiting for server...");
@@ -162,20 +136,12 @@ internal static class Program
 
         Console.WriteLine("Client detected server ready!");
 
-        #endregion
-
-        #region Send-Messages-to-Server
-
         for (var i = 0; i < MessagesPerClient; i++)
         {
             Task.Delay(sendDelay).Wait();
             client.SendAsync(msgData).Wait();
             stats.AddSent(msgData.Length);
         }
-
-        #endregion
-
-        #region Wait-for-Server-Messages
 
         while (stats.MsgRecv < MessagesPerClient)
         {
@@ -184,8 +150,6 @@ internal static class Program
 
         Console.WriteLine("Client exiting: " + stats.ToString());
         ClientStats.Add(stats);
-
-        #endregion
     }
 
     private static string RandomString(int numChar)

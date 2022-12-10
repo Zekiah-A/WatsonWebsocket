@@ -11,8 +11,6 @@ namespace WatsonWebsocket
     /// </summary>
     public class MessageReceivedEventArgs : EventArgs
     {
-        #region Public-Members
-
         /// <summary>
         /// The sender client instance.
         /// </summary>
@@ -28,29 +26,11 @@ namespace WatsonWebsocket
         /// </summary>
         public WebSocketMessageType MessageType = WebSocketMessageType.Binary;
 
-        #endregion
-
-        #region Private-Members
-
-        #endregion
-
-        #region Constructors-and-Factories
-
         internal MessageReceivedEventArgs(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType messageType)
         {
             Client = client;
             Data = data;
             MessageType = messageType;
         }
-        
-        #endregion
-
-        #region Public-Methods
-
-        #endregion
-
-        #region Private-Methods
-
-        #endregion
     }
 }

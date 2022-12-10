@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.WebSockets;
 using System.Threading;
+using Microsoft.AspNetCore.Http;
 
 namespace WatsonWebsocket;
 
@@ -11,24 +12,23 @@ namespace WatsonWebsocket;
 public class ClientMetadata
 { 
     public string IpPort => ip + ":" + port;
-    public WebSocketContext WsContext => wsContext;
-    public HttpListenerContext HttpContext => httpContext;
-
-    private readonly string ip;
-    private readonly int port;
-    private readonly HttpListenerContext httpContext;
-    private WebSocketContext wsContext;
-    internal WebSocket Ws;
+    /*public WebSocketContext WsContext { get; }*/
+    public HttpContext HttpContext { get; }
+    
+    internal readonly WebSocket Ws;
     internal readonly CancellationTokenSource TokenSource;
     internal readonly SemaphoreSlim SendLock = new(1);
-         
-    internal ClientMetadata(HttpListenerContext httpContext, WebSocket ws, WebSocketContext wsContext, CancellationTokenSource tokenSource)
+    
+    private readonly string ip;
+    private readonly int port;
+
+    internal ClientMetadata(HttpContext httpContext, WebSocket ws, /*WebSocketContext wsContext,*/ CancellationTokenSource tokenSource)
     {
-        this.httpContext = httpContext ?? throw new ArgumentNullException(nameof(httpContext));
+        HttpContext = httpContext ?? throw new ArgumentNullException(nameof(httpContext));
         Ws = ws ?? throw new ArgumentNullException(nameof(ws));
-        this.wsContext = wsContext ?? throw new ArgumentNullException(nameof(wsContext));
+        /*WsContext = wsContext ?? throw new ArgumentNullException(nameof(wsContext));*/
         TokenSource = tokenSource ?? throw new ArgumentNullException(nameof(tokenSource)); 
-        ip = this.httpContext.Request.RemoteEndPoint.Address.ToString();
-        port = this.httpContext.Request.RemoteEndPoint.Port;
+        ip = HttpContext.Connection.RemoteIpAddress!.ToString();
+        port = HttpContext.Connection.RemotePort;
     } 
 }

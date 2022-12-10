@@ -25,8 +25,6 @@ internal static class Program
         const string header = "[Server] ";
         using (server = new WatsonWsServer(Hostname, Port))
         {
-            #region Start-Server
-                 
             server.ClientConnected += (s, e) =>
             {
                 clientIpPort = e.Client.IpPort;
@@ -51,10 +49,6 @@ internal static class Program
             server.Start();
             Console.WriteLine(header + "started");
 
-            #endregion
-
-            #region Start-Client-and-Send-Messages
-
             Task.Run(ClientTask); 
 
             Task.Delay(1000).Wait();
@@ -76,19 +70,11 @@ internal static class Program
 
             Console.WriteLine(header + "messages sent");
 
-            #endregion
-
-            #region Wait-for-and-Echo-Client-Messages
-
             while (!IsNullOrEmpty(clientIpPort))
             {
                 Console.WriteLine(header + "waiting for client to finish");
                 Task.Delay(1000).Wait();
             }
-
-            #endregion
-
-            #region Statistics
 
             Console.WriteLine("");
             Console.WriteLine("");
@@ -98,8 +84,6 @@ internal static class Program
             Console.WriteLine("Client statistics");
             Console.WriteLine("  " + ClientStats);
             Console.WriteLine("");
-
-            #endregion
 
             Console.WriteLine("Press ENTER to exit");
             Console.ReadLine();
@@ -116,8 +100,6 @@ internal static class Program
         var header = "[Client] ";
 
         using var client = new WatsonWsClient(Hostname, Port, false);
-
-        #region Start-Client
 
         client.ServerConnected += (s, e) =>
         { 
@@ -138,10 +120,6 @@ internal static class Program
         client.Start();
         Console.WriteLine(header + "started");
 
-        #endregion
-
-        #region Wait-for-Messages
-
         while (ClientStats.MsgRecv < ServerSendMessageCount) 
         {
             Task.Delay(1000).Wait();
@@ -149,9 +127,6 @@ internal static class Program
         };
 
         Console.WriteLine(header + "server messages received");
-        #endregion
-
-        #region Send-Messages
 
         Console.WriteLine(header + "sending messages to server");
 
@@ -170,8 +145,6 @@ internal static class Program
 
         Console.WriteLine(header + "finished");
         clientIpPort = null;
-
-        #endregion
     }
 
     private static string RandomString(int numChar)

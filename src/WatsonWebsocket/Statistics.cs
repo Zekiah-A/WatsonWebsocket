@@ -10,8 +10,6 @@ namespace WatsonWebsocket
     /// </summary>
     public class Statistics
     {
-        #region Public-Members
-
         /// <summary>
         /// The time at which the client or server was started.
         /// </summary>
@@ -75,15 +73,6 @@ namespace WatsonWebsocket
             }
         }
 
-        #endregion
-
-        #region Private-Members
-
-
-        #endregion
-
-        #region Constructors-and-Factories
-
         /// <summary>
         /// Initialize the statistics object.
         /// </summary>
@@ -91,10 +80,6 @@ namespace WatsonWebsocket
         {
 
         }
-
-        #endregion
-
-        #region Public-Methods
 
         /// <summary>
         /// Return human-readable version of the object.
@@ -128,10 +113,6 @@ namespace WatsonWebsocket
             SentMessages = 0;
         }
 
-        #endregion
-
-        #region Internal-Methods
-
         internal void IncrementReceivedMessages()
         {
             ReceivedMessages = Interlocked.Increment(ref ReceivedMessages);
@@ -151,11 +132,5 @@ namespace WatsonWebsocket
         {
             SentBytes = Interlocked.Add(ref SentBytes, bytes);
         }
-
-        #endregion
-
-        #region Private-Methods
-
-        #endregion
     }
 }
