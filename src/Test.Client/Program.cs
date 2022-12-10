@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Text;
 using WatsonWebsocket;
-using static System.String;
 
 namespace Test.Client;
 
@@ -26,7 +25,7 @@ internal static class Program
         {
             Console.Write("Command [? for help]: ");
             var userInput = Console.ReadLine();
-            if (IsNullOrEmpty(userInput)) continue;
+            if (string.IsNullOrEmpty(userInput)) continue;
 
             switch (userInput)
             {
@@ -58,7 +57,7 @@ internal static class Program
                 case "send text":
                     Console.Write("Data: ");
                     userInput = Console.ReadLine();
-                    if (IsNullOrEmpty(userInput)) break;
+                    if (string.IsNullOrEmpty(userInput)) break;
                     if (client != null && !client.SendAsync(userInput).Result) Console.WriteLine("Failed");
                     else Console.WriteLine("Success");
                     break;
@@ -66,40 +65,34 @@ internal static class Program
                 case "send bytes":
                     Console.Write("Data: ");
                     userInput = Console.ReadLine();
-                    if (IsNullOrEmpty(userInput)) break;
-                    if (client != null && !client.SendAsync(Encoding.UTF8.GetBytes(userInput)).Result) Console.WriteLine("Failed");
+                    if (string.IsNullOrEmpty(userInput)) break;
+                    if (client != null && !client.SendAsync(Encoding.UTF8.GetBytes(userInput)).Result)
+                        Console.WriteLine("Failed");
                     break;
 
                 case "sync text":
                     Console.Write("Data: ");
                     userInput = Console.ReadLine();
-                    if (IsNullOrEmpty(userInput)) break;
+                    if (string.IsNullOrEmpty(userInput)) break;
                     var resultStr = client?.SendAndWaitAsync(userInput).Result;
-                    if (!IsNullOrEmpty(resultStr))
-                    {
+                    if (!string.IsNullOrEmpty(resultStr))
                         Console.WriteLine("Response: " + resultStr);
-                    }
                     else
-                    {
                         Console.WriteLine("(null)");
-                    }
                     break;
 
                 case "sync bytes":
                     Console.Write("Data: ");
                     userInput = Console.ReadLine();
-                    if (IsNullOrEmpty(userInput)) break;
+                    if (string.IsNullOrEmpty(userInput)) break;
                     if (client != null)
                     {
                         var resultBytes = client.SendAndWaitAsync(Encoding.UTF8.GetBytes(userInput)).Result;
                         if (resultBytes.Count > 0)
-                        {
-                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(resultBytes.Array, 0, resultBytes.Count));
-                        }
+                            Console.WriteLine("Response: " +
+                                              Encoding.UTF8.GetString(resultBytes.Array, 0, resultBytes.Count));
                         else
-                        {
                             Console.WriteLine("(null)");
-                        }
                     }
 
                     break;
@@ -119,13 +112,9 @@ internal static class Program
 
                 case "connect":
                     if (client != null && client.Connected)
-                    {
                         Console.WriteLine("Already connected");
-                    }
                     else
-                    {
                         InitializeClient();
-                    }
                     break;
 
                 case "reconnect":
@@ -147,14 +136,14 @@ internal static class Program
         // _Client = new WatsonWsClient(_ServerIp, _ServerPort, _Ssl);
 
         // URI-based constructor
-        client = ssl ?
-            new WatsonWsClient(new Uri("wss://" + serverIp + ":" + serverPort))
+        client = ssl
+            ? new WatsonWsClient(new Uri("wss://" + serverIp + ":" + serverPort))
             : new WatsonWsClient(new Uri("ws://" + serverIp + ":" + serverPort));
 
         client.AcceptInvalidCertificates = AcceptInvalidCertificates;
         client.ServerConnected += ServerConnected;
         client.ServerDisconnected += ServerDisconnected;
-        client.MessageReceived += MessageReceived; 
+        client.MessageReceived += MessageReceived;
         client.Logger = Logger;
         client.AddCookie(new System.Net.Cookie("foo", "bar", "/", "localhost"));
 
@@ -171,19 +160,13 @@ internal static class Program
 
         var userInput = Console.ReadLine();
 
-        if (IsNullOrEmpty(userInput))
-        {
-            return yesDefault;
-        }
+        if (string.IsNullOrEmpty(userInput)) return yesDefault;
 
         userInput = userInput.ToLower();
 
-        if (yesDefault)
-        {
-            return Compare(userInput, "n") != 0 && Compare(userInput, "no") != 0;
-        }
+        if (yesDefault) return string.Compare(userInput, "n") != 0 && string.Compare(userInput, "no") != 0;
 
-        return CompareOrdinal(userInput, "y") == 0 || CompareOrdinal(userInput, "yes") == 0;
+        return string.CompareOrdinal(userInput, "y") == 0 || string.CompareOrdinal(userInput, "yes") == 0;
     }
 
     private static string? InputString(string question, string? defaultAnswer, bool allowNull)
@@ -192,17 +175,14 @@ internal static class Program
         {
             Console.Write(question);
 
-            if (!IsNullOrEmpty(defaultAnswer))
-            {
-                Console.Write(" [" + defaultAnswer + "]");
-            }
+            if (!string.IsNullOrEmpty(defaultAnswer)) Console.Write(" [" + defaultAnswer + "]");
 
             Console.Write(" ");
 
             var userInput = Console.ReadLine();
 
-            if (!IsNullOrEmpty(userInput)) return userInput;
-            if (!IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
+            if (!string.IsNullOrEmpty(userInput)) return userInput;
+            if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
             if (allowNull) return null;
         }
     }
@@ -216,10 +196,7 @@ internal static class Program
 
             var userInput = Console.ReadLine();
 
-            if (IsNullOrEmpty(userInput))
-            {
-                return defaultAnswer;
-            }
+            if (string.IsNullOrEmpty(userInput)) return defaultAnswer;
 
             if (!int.TryParse(userInput, out var ret))
             {
@@ -228,17 +205,12 @@ internal static class Program
             }
 
             if (ret == 0)
-            {
                 if (allowZero)
-                {
                     return 0;
-                }
-            }
 
             if (ret >= 0) return ret;
             if (!positiveOnly) return ret;
             Console.WriteLine("Please enter a value greater than zero.");
-
         }
     }
 

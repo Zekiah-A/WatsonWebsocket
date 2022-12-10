@@ -7,10 +7,10 @@ namespace Test.ClientTimeout;
 
 internal static class Program
 {
+    private const bool AcceptInvalidCertificates = true;
     private static string? serverIp = "";
     private static int serverPort;
     private static bool ssl;
-    private const bool AcceptInvalidCertificates = true;
     private static WatsonWsClient? client;
 
     private static void Main(string[] args)
@@ -66,7 +66,8 @@ internal static class Program
                     Console.Write("Data: ");
                     userInput = Console.ReadLine();
                     if (string.IsNullOrEmpty(userInput)) break;
-                    if (client != null && !client.SendAsync(Encoding.UTF8.GetBytes(userInput)).Result) Console.WriteLine("Failed");
+                    if (client != null && !client.SendAsync(Encoding.UTF8.GetBytes(userInput)).Result)
+                        Console.WriteLine("Failed");
                     break;
 
                 case "sync text":
@@ -77,13 +78,9 @@ internal static class Program
                     {
                         var resultStr = client.SendAndWaitAsync(userInput).Result;
                         if (!string.IsNullOrEmpty(resultStr))
-                        {
                             Console.WriteLine("Response: " + resultStr);
-                        }
                         else
-                        {
                             Console.WriteLine("(null)");
-                        }
                     }
 
                     break;
@@ -96,13 +93,10 @@ internal static class Program
                     {
                         var resultBytes = client.SendAndWaitAsync(Encoding.UTF8.GetBytes(userInput)).Result;
                         if (resultBytes.Count > 0)
-                        {
-                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(resultBytes.Array, 0, resultBytes.Count));
-                        }
+                            Console.WriteLine("Response: " +
+                                              Encoding.UTF8.GetString(resultBytes.Array, 0, resultBytes.Count));
                         else
-                        {
                             Console.WriteLine("(null)");
-                        }
                     }
 
                     break;
@@ -122,13 +116,9 @@ internal static class Program
 
                 case "connect":
                     if (client is {Connected: true})
-                    {
                         Console.WriteLine("Already connected");
-                    }
                     else
-                    {
                         InitializeClient();
-                    }
                     break;
 
                 case "reconnect":
@@ -145,10 +135,10 @@ internal static class Program
     private static void InitializeClient()
     {
         client?.Dispose();
-            
+
         // URI-based constructor
-        client = ssl ? 
-            new WatsonWsClient(new Uri("wss://" + serverIp + ":" + serverPort)) 
+        client = ssl
+            ? new WatsonWsClient(new Uri("wss://" + serverIp + ":" + serverPort))
             : new WatsonWsClient(new Uri("ws://" + serverIp + ":" + serverPort));
 
         client.AcceptInvalidCertificates = AcceptInvalidCertificates;
@@ -157,9 +147,8 @@ internal static class Program
         client.MessageReceived += MessageReceived;
         client.Logger = Logger;
         client.AddCookie(new System.Net.Cookie("foo", "bar", "/", "localhost"));
-            
+
         while (!client.Connected)
-        {
             try
             {
                 Console.WriteLine("Attempting connection...");
@@ -171,8 +160,7 @@ internal static class Program
             {
                 Console.WriteLine(ex.ToString());
             }
-        }
-            
+
         Console.WriteLine("Client connected: " + client.Connected);
     }
 
@@ -184,17 +172,12 @@ internal static class Program
 
         var userInput = Console.ReadLine();
 
-        if (string.IsNullOrEmpty(userInput))
-        {
-            return yesDefault;
-        }
+        if (string.IsNullOrEmpty(userInput)) return yesDefault;
 
         userInput = userInput.ToLower();
 
         if (yesDefault)
-        {
             return string.CompareOrdinal(userInput, "n") != 0 && string.CompareOrdinal(userInput, "no") != 0;
-        }
 
         return string.CompareOrdinal(userInput, "y") == 0 || string.CompareOrdinal(userInput, "yes") == 0;
     }
@@ -205,10 +188,7 @@ internal static class Program
         {
             Console.Write(question);
 
-            if (!string.IsNullOrEmpty(defaultAnswer))
-            {
-                Console.Write(" [" + defaultAnswer + "]");
-            }
+            if (!string.IsNullOrEmpty(defaultAnswer)) Console.Write(" [" + defaultAnswer + "]");
 
             Console.Write(" ");
 
@@ -229,10 +209,7 @@ internal static class Program
 
             var userInput = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(userInput))
-            {
-                return defaultAnswer;
-            }
+            if (string.IsNullOrEmpty(userInput)) return defaultAnswer;
 
             if (!int.TryParse(userInput, out var ret))
             {

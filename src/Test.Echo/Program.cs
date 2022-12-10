@@ -23,7 +23,7 @@ internal static class Program
     private static void Main(string[] args)
     {
         const string header = "[Server] ";
-        using (server = new WatsonWsServer(Hostname, Port))
+        using (server = new WatsonWsServer(Port, false, Hostname))
         {
             server.ClientConnected += (s, e) =>
             {

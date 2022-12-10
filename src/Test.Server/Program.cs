@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.Http.Extensions;
 using WatsonWebsocket;
 
 namespace Test.Server;
@@ -136,25 +137,24 @@ internal static class Program
 
     private static void InitializeServer()
     {
-        server = new WatsonWsServer(serverIp, serverPort, ssl);            
-        server.AcceptInvalidCertificates = AcceptInvalidCertificates;
+        server = new WatsonWsServer(serverPort, ssl, serverIp);            
         server.ClientConnected += ClientConnected;
         server.ClientDisconnected += ClientDisconnected;
         server.MessageReceived += MessageReceived;
         server.Logger = Logger;
-        server.HttpHandler = HttpHandler;
+        /*server.HttpHandler = HttpHandler;*/
     }
 
     private static void InitializeServerMultiple()
     {
         // original constructor
-        var hostnames = new List<string>
+        var hostnames = new[]
         {
             "192.168.1.163",
             "127.0.0.1"
         };
 
-        server = new WatsonWsServer(hostnames, serverPort, ssl);
+        server = new WatsonWsServer(serverPort, ssl, hostnames);
 
         // URI-based constructor
         // if (_Ssl) _Server = new WatsonWsServer(new Uri("https://" + _ServerIp + ":" + _ServerPort));
@@ -164,13 +164,14 @@ internal static class Program
         server.ClientDisconnected += ClientDisconnected;
         server.MessageReceived += MessageReceived;
         server.Logger = Logger;
-        server.HttpHandler = HttpHandler;
+        /*server.HttpHandler = HttpHandler;*/
     }
 
     private static async void StartServer()
     {                         
         // _Server.Start();
-        await server.StartAsync();
+        /*await server.StartAsync();*/
+        server.Start();
         Console.WriteLine("Server is listening: " + server.IsListening);
     }
 
@@ -259,14 +260,14 @@ internal static class Program
 
     private static void ClientConnected(object? sender, ClientConnectedEventArgs args) 
     {
-        Console.WriteLine("Client " + args.Client.IpPort + " connected using URL " + args.HttpRequest.RawUrl);
+        Console.WriteLine("Client " + args.Client.IpPort + " connected using URL " + args.HttpRequest.GetDisplayUrl());
         lastIpPort = args.Client.IpPort;
 
         if (args.HttpRequest.Cookies.Count <= 0) return;
         Console.WriteLine(args.HttpRequest.Cookies.Count + " cookie(s) present:");
-        foreach (Cookie cookie in args.HttpRequest.Cookies)
+        foreach (var cookie in args.HttpRequest.Cookies)
         {
-            Console.WriteLine("| " + cookie.Name + ": " + cookie.Value);
+            Console.WriteLine("| " + cookie.Key + ": " + cookie.Value);
         }
     }
 
@@ -282,7 +283,7 @@ internal static class Program
         Console.WriteLine(args.MessageType + " from " + args.Client.IpPort + ": " + msg);
     }
 
-    private static void HttpHandler(HttpListenerContext ctx)
+    /*private static void HttpHandler(HttpListenerContext ctx)
     { 
         var req = ctx.Request;
         string? contents;
@@ -294,7 +295,7 @@ internal static class Program
             }
         }
 
-        Console.WriteLine("Non-websocket request received for: " + req.HttpMethod.ToString() + " " + req.RawUrl);
+        Console.WriteLine("Non-websocket request received for: " + req.HttpMethod + " " + req.RawUrl);
         if (req.Headers.Count > 0)
         {
             Console.WriteLine("Headers:"); 
@@ -308,5 +309,5 @@ internal static class Program
         if (string.IsNullOrEmpty(contents)) return;
         Console.WriteLine("Request body:");
         Console.WriteLine(contents);
-    }
+    }*/
 }
