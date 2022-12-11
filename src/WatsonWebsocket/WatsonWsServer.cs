@@ -148,7 +148,7 @@ namespace WatsonWebsocket
         /// </summary>
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="hostname">The hostnames or IP addresses upon which to listen.</param>
-        public WatsonWsServer(int port, string hostname) : this(port, false, null, null, hostname) { }
+        public WatsonWsServer(int port, params string[] hostname) : this(port, false, null, null, hostname) { }
 
         /// <summary>
         /// Tear down the server and dispose of background workers.
