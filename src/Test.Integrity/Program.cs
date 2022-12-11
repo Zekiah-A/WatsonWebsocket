@@ -27,7 +27,7 @@ internal static class Program
         msgData = Encoding.UTF8.GetBytes(RandomString(MsgLength));
         sendDelay = NumClients * 20;
 
-        using (server = new WatsonWsServer(Port, false, Hostname))
+        using (server = new WatsonWsServer(Port, Hostname))
         {
             serverStats = new Statistics();
 

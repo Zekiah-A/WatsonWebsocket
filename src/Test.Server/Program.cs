@@ -137,7 +137,7 @@ internal static class Program
 
     private static void InitializeServer()
     {
-        server = new WatsonWsServer(serverPort, ssl, serverIp);            
+        server = new WatsonWsServer(serverPort, serverIp);            
         server.ClientConnected += ClientConnected;
         server.ClientDisconnected += ClientDisconnected;
         server.MessageReceived += MessageReceived;
@@ -154,7 +154,7 @@ internal static class Program
             "127.0.0.1"
         };
 
-        server = new WatsonWsServer(serverPort, ssl, hostnames);
+        server = new WatsonWsServer(serverPort, hostnames);
 
         // URI-based constructor
         // if (_Ssl) _Server = new WatsonWsServer(new Uri("https://" + _ServerIp + ":" + _ServerPort));

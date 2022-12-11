@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text; 
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,7 +61,7 @@ namespace WatsonWebsocket
         /// Method to invoke when sending a log message.
         /// </summary>
         public Action<string>? Logger;
-
+        
         /// <summary>
         /// Statistics.
         /// </summary>
@@ -85,7 +86,7 @@ namespace WatsonWebsocket
         /// <param name="hostnames">The hostnames or IP addresses upon which to listen.</param>
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
-        public WatsonWsServer(int port = 9000, bool ssl = false, params string[] hostnames)
+        public WatsonWsServer(int port = 9000, bool ssl = false, X509Certificate2? cert = null, X509Certificate2? key = null, params string[] hostnames)
         {
             if (port < 0) throw new ArgumentOutOfRangeException(nameof(port));
 
@@ -99,6 +100,25 @@ namespace WatsonWebsocket
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseUrls(listenerPrefixes.ToArray());
+                    
+                    webBuilder.UseKestrel(options =>
+                    {
+                        if (!ssl) return;
+                        
+                        foreach (var prefix in listenerPrefixes)
+                        {
+                            options.Listen(IPEndPoint.Parse(prefix), listenOptions =>
+                            {
+                                //  listenOptions.UseHttps("testCert.pfx", "testPassword");
+                                listenOptions.UseHttps(adapterOptions =>
+                                {
+                                    adapterOptions.ServerCertificate = cert;
+                                    
+                                });
+                            });
+                        }
+                    });
+                    
                     webBuilder.Configure(app =>
                     {
                         app.UseWebSockets();
@@ -107,10 +127,10 @@ namespace WatsonWebsocket
                 })
                 .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Critical))
                 .Build();
-            
+
             tokenSource = new CancellationTokenSource();
-            token = tokenSource.Token;
             Clients = new List<ClientMetadata>();
+            token = tokenSource.Token;
         }
 
         /// <summary>
@@ -119,8 +139,17 @@ namespace WatsonWebsocket
         /// By default, Watson Websocket will listen on http://localhost:9000/.
         /// </summary>
         /// <param name="uri">URI which socket will listen upon.</param>
-        public WatsonWsServer(Uri uri) : this(uri.Port, uri.Scheme is "wss" or "https", uri.Host) { }
+        public WatsonWsServer(Uri uri) : this(uri.Port, uri.Scheme is "wss" or "https", null, null, uri.Host) { }
         
+        /// <summary>
+        /// Initialises watson websocket server with a listener port and hostname.
+        /// Be sure to call 'Start()' to start the server.
+        /// By default, Watson Websocket will listen on http://localhost:9000/.
+        /// </summary>
+        /// <param name="port">The TCP port on which to listen.</param>
+        /// <param name="hostname">The hostnames or IP addresses upon which to listen.</param>
+        public WatsonWsServer(int port, string hostname) : this(port, false, null, null, hostname) { }
+
         /// <summary>
         /// Tear down the server and dispose of background workers.
         /// </summary>
