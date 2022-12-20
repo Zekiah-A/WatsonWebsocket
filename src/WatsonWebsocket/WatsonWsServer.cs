@@ -30,12 +30,12 @@ namespace WatsonWebsocket
         /// <summary>
         /// Event fired when a client connects.
         /// </summary>
-        public event EventHandler<ClientConnectedEventArgs>? ClientConnected;
+        public event EventHandler<ClientConnectedEventArgs>? ClientConnected = (_, _) => {};
 
         /// <summary>
         /// Event fired when a client disconnects.
         /// </summary>
-        public event EventHandler<ClientDisconnectedEventArgs>? ClientDisconnected;
+        public event EventHandler<ClientDisconnectedEventArgs>? ClientDisconnected = (_, _) => {};
 
         /// <summary>
         /// Event fired when the server stops.
@@ -45,7 +45,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// Event fired when a message is received.
         /// </summary>
-        public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
+        public event EventHandler<MessageReceivedEventArgs>? MessageReceived = (_, _) => {};
 
         /// <summary>
         /// Specify the IP addresses that are allowed to connect.  If none are supplied, all IP addresses are permitted.
@@ -124,7 +124,7 @@ namespace WatsonWebsocket
                         app.Use(AcceptConnectionsAsync);
                     });
                 })
-                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Critical))
+                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
                 .Build();
 
             tokenSource = new CancellationTokenSource();
@@ -322,10 +322,7 @@ namespace WatsonWebsocket
                 var metadata = new ClientMetadata(context, webSocket, tokenSource);
                 Clients.Add(metadata);
 
-#pragma warning disable CS4014
-                Task.Run(() => ClientConnected?.Invoke(this, new ClientConnectedEventArgs(metadata, context.Request)))
-                    .ConfigureAwait(false);
-#pragma warning restore CS4014
+                ClientConnected?.Invoke(this, new ClientConnectedEventArgs(metadata, context.Request));
                 await DataReceiver(metadata);
             }
             catch (Exception e)
@@ -364,10 +361,7 @@ namespace WatsonWebsocket
                         Stats?.AddReceivedBytes(msg.Data.Count);
                     }
 
-#pragma warning disable CS4014
-                    Task.Run(() => MessageReceived?.Invoke(this, msg), md.TokenSource.Token)
-                        .ConfigureAwait(false);
-#pragma warning restore CS4014
+                    MessageReceived?.Invoke(this, msg);
                 }
             }
             catch (Exception e)
@@ -380,11 +374,8 @@ namespace WatsonWebsocket
                 Logger?.Invoke(header + "exception: " + Environment.NewLine + e);
             }
             finally
-            { 
-#pragma warning disable CS4014
-                Task.Run(() => ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(md)))
-                    .ConfigureAwait(false);
-#pragma warning restore CS4014
+            {
+                ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(md));
                 
                 md.Ws.Dispose();
                 Logger?.Invoke(header + "disconnected");
@@ -401,7 +392,7 @@ namespace WatsonWebsocket
 
             while (true)
             {
-                var result = await md.Ws.ReceiveAsync(seg, md.TokenSource.Token).ConfigureAwait(false);
+                var result = await md.Ws.ReceiveAsync(seg, md.TokenSource.Token);
                 if (result.CloseStatus != null)
                 {
                     Logger?.Invoke(header + "close received");
