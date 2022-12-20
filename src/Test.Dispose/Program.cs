@@ -20,7 +20,7 @@ internal static class Program
 
         // test2
         Task.Delay(1000).Wait();
-        server.Stop();
+        server.StopAsync();
         Console.WriteLine("Test 2 with server stopped: " + ClientTask());
 
         // test3

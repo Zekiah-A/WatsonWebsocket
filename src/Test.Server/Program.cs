@@ -47,7 +47,7 @@ internal static class Program
                     Console.WriteLine("  cls                          clear screen");
                     Console.WriteLine("  dispose                      dispose of the server");
                     Console.WriteLine("  reinit                       reinitialize the server");
-                    Console.WriteLine("  start                        start accepting new connections (listening: " + server.IsListening + ")");
+                    Console.WriteLine("  start                        start accepting new connections");
                     Console.WriteLine("  stop                         stop accepting new connections");
                     Console.WriteLine("  list                         list clients");
                     Console.WriteLine("  stats                        display server statistics");
@@ -77,7 +77,7 @@ internal static class Program
                     break;
 
                 case "stop":
-                    server.Stop();
+                    server.StopAsync();
                     break;
 
                 case "list":
@@ -169,10 +169,8 @@ internal static class Program
 
     private static async void StartServer()
     {                         
-        // _Server.Start();
-        /*await server.StartAsync();*/
-        server.Start();
-        Console.WriteLine("Server is listening: " + server.IsListening);
+        await server.StartAsync();
+        Console.WriteLine("Server is listening: ");
     }
 
     private static void Logger(string msg)

@@ -23,11 +23,6 @@ namespace WatsonWebsocket
     public class WatsonWsServer : IDisposable
     {
         /// <summary>
-        /// Determine if the server is listening for new connections.
-        /// </summary>
-        public bool IsListening = false; //{ get; set; } = false; //listener is { IsListening: true };
-
-        /// <summary>
         /// Enable or disable statistics.
         /// </summary>
         public bool EnableStatistics { get; set; } = true;
@@ -75,7 +70,7 @@ namespace WatsonWebsocket
         private const string Header = "[WatsonWsServer] ";
         private readonly List<string> listenerPrefixes = new();
         private CancellationTokenSource tokenSource;
-        private CancellationToken token; 
+        private CancellationToken cancellationToken; 
         private IHost listener;
 
         /// <summary>
@@ -86,7 +81,8 @@ namespace WatsonWebsocket
         /// <param name="hostnames">The hostnames or IP addresses upon which to listen.</param>
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
-        public WatsonWsServer(int port = 9000, bool ssl = false, X509Certificate2? cert = null, X509Certificate2? key = null, params string[] hostnames)
+        public WatsonWsServer(int port = 9000, bool ssl = false, string? certificatePath = default,
+                                string? keyPath = default, params string[] hostnames)
         {
             if (port < 0) throw new ArgumentOutOfRangeException(nameof(port));
 
@@ -96,6 +92,14 @@ namespace WatsonWebsocket
                 else listenerPrefixes.Add("http://" + hostname + ":" + port + "/");
             }
 
+            X509Certificate2? x509 = default;
+            if (ssl && Path.Exists(certificatePath) && Path.Exists(keyPath))
+            {
+                var certPem = File.ReadAllText("certificatePath");
+                var keyPem = File.ReadAllText("keyPath");
+                x509 = X509Certificate2.CreateFromPem(certPem, keyPem);
+            }
+
             listener = Host.CreateDefaultBuilder()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
@@ -103,18 +107,13 @@ namespace WatsonWebsocket
                     
                     webBuilder.UseKestrel(options =>
                     {
-                        if (!ssl) return;
+                        if (!ssl || x509 is null) return;
                         
                         foreach (var prefix in listenerPrefixes)
                         {
                             options.Listen(IPEndPoint.Parse(prefix), listenOptions =>
                             {
-                                //  listenOptions.UseHttps("testCert.pfx", "testPassword");
-                                listenOptions.UseHttps(adapterOptions =>
-                                {
-                                    adapterOptions.ServerCertificate = cert;
-                                    
-                                });
+                                listenOptions.UseHttps(x509);
                             });
                         }
                     });
@@ -130,7 +129,7 @@ namespace WatsonWebsocket
 
             tokenSource = new CancellationTokenSource();
             Clients = new List<ClientMetadata>();
-            token = tokenSource.Token;
+            cancellationToken = tokenSource.Token;
         }
 
         /// <summary>
@@ -171,11 +170,11 @@ namespace WatsonWebsocket
         /// Start accepting new connections.
         /// </summary>
         /// <returns>Task.</returns>
-        public Task StartAsync(CancellationToken cancellationToken = default)
+        public Task StartAsync(CancellationToken token = default)
         {
             InitialiseListener();
-            listener.StartAsync(cancellationToken);
-            return Task.Delay(1);
+            listener.StartAsync(token);
+            return Task.Delay(1, token);
         }
         
         /// <summary>
@@ -183,27 +182,22 @@ namespace WatsonWebsocket
         /// </summary>
         private void InitialiseListener()
         {
-            if (IsListening) throw new InvalidOperationException("Watson websocket server is already running.");
-
             Stats = new Statistics();
 
             var logMsg = listenerPrefixes.Aggregate(Header + "starting on:", (current, prefix) => current + " " + prefix);
             Logger?.Invoke(logMsg);
             
             tokenSource = new CancellationTokenSource();
-            token = tokenSource.Token;
+            cancellationToken = tokenSource.Token;
         }
 
         /// <summary>
         /// Stop accepting new connections.
         /// </summary>
-        public void Stop()
+        public async void StopAsync(CancellationToken token = default)
         {
-            if (!IsListening) throw new InvalidOperationException("Watson websocket server is not running.");
-
             Logger?.Invoke(Header + "stopping");
-
-            listener.StopAsync(); 
+            await listener.StopAsync(token);
         }
 
         /// <summary>
@@ -211,12 +205,12 @@ namespace WatsonWebsocket
         /// </summary>
         /// <param name="client">The recipient client.</param>
         /// <param name="data">String containing data.</param>
-        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
+        /// <param name="token">Cancellation cancellationToken allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, string data, CancellationToken cancellationToken = default)
+        public Task<bool> SendAsync(ClientMetadata client, string data, CancellationToken token = default)
         {
             if (string.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return MessageWriteAsync(client, new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)), WebSocketMessageType.Text, cancellationToken);
+            return MessageWriteAsync(client, new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)), WebSocketMessageType.Text, token);
         }
 
         /// <summary>
@@ -224,11 +218,11 @@ namespace WatsonWebsocket
         /// </summary>
         /// <param name="client">The recipient client.</param>
         /// <param name="data">Byte array containing data.</param> 
-        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
+        /// <param name="token">Cancellation cancellationToken allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, byte[] data, CancellationToken cancellationToken = default)
+        public Task<bool> SendAsync(ClientMetadata client, byte[] data, CancellationToken token = default)
         {
-            return SendAsync(client, new ArraySegment<byte>(data), WebSocketMessageType.Binary, cancellationToken);
+            return SendAsync(client, new ArraySegment<byte>(data), WebSocketMessageType.Binary, token);
         }
 
         /// <summary>
@@ -237,11 +231,11 @@ namespace WatsonWebsocket
         /// <param name="client">The recipient client.</param>
         /// <param name="data">Byte array containing data.</param> 
         /// <param name="msgType">Web socket message type.</param>
-        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
+        /// <param name="token">Cancellation cancellationToken allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, byte[] data, WebSocketMessageType msgType, CancellationToken cancellationToken = default)
+        public Task<bool> SendAsync(ClientMetadata client, byte[] data, WebSocketMessageType msgType, CancellationToken token = default)
         {
-            return SendAsync(client, new ArraySegment<byte>(data), msgType, cancellationToken);
+            return SendAsync(client, new ArraySegment<byte>(data), msgType, token);
         }
 
         /// <summary>
@@ -250,12 +244,12 @@ namespace WatsonWebsocket
         /// <param name="client">The recipient client.</param>
         /// <param name="data">ArraySegment containing data.</param> 
         /// <param name="msgType">Web socket message type.</param>
-        /// <param name="cancellationToken">Cancellation token allowing for termination of this request.</param>
+        /// <param name="token">Cancellation cancellationToken allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken cancellationToken = default)
+        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
         {
             if (data.Array == null || data.Count < 1) throw new ArgumentNullException(nameof(data));
-            return MessageWriteAsync(client, data, msgType, cancellationToken);
+            return MessageWriteAsync(client, data, msgType, token);
         }
 
         /// <summary>
@@ -301,40 +295,38 @@ namespace WatsonWebsocket
         {
             try
             {
-                while (true) //TODO: Put cancellation token here instead + listener is listening
+                var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+
+                var ip = context.Connection.RemoteIpAddress!.ToString();
+                var port = context.Connection.RemotePort.ToString();
+                var ipPort = ip + ":" + port;
+
+                if (PermittedIpAddresses is { Count: > 0 } && !PermittedIpAddresses.Contains(ip))
                 {
-                    var ip = context.Connection.RemoteIpAddress!.ToString();
-                    var port = context.Connection.RemotePort.ToString();
-                    var ipPort = ip + ":" + port;
+                    Logger?.Invoke(Header + "rejecting " + ipPort + " (not permitted)");
+                    context.Response.StatusCode = 401;
+                    context.Connection.RequestClose();
+                    return; 
+                }
 
-                    if (PermittedIpAddresses is {Count: > 0} && !PermittedIpAddresses.Contains(ip))
-                    {
-                        Logger?.Invoke(Header + "rejecting " + ipPort + " (not permitted)");
-                        context.Response.StatusCode = 401;
-                        context.Connection.RequestClose();
-                        continue;
-                    }
+                if (!context.WebSockets.IsWebSocketRequest)
+                {
+                    Logger?.Invoke(Header + "non-websocket request rejected from " + ipPort);
+                    context.Response.StatusCode = 400;
+                    context.Connection.RequestClose();
+                    return;  //continue;
+                }
 
-                    if (!context.WebSockets.IsWebSocketRequest)
-                    {
-                        Logger?.Invoke(Header + "non-websocket request rejected from " + ipPort);
-                        context.Response.StatusCode = 400;
-                        context.Connection.RequestClose();
-                        continue;
-                    }
-
-                    Logger?.Invoke(Header + "starting data receiver for " + ipPort);
-
-                    var ws = await context.WebSockets.AcceptWebSocketAsync();
-                    var md = new ClientMetadata(context, ws, tokenSource);
-                    Clients.Add(md);
+                Logger?.Invoke(Header + "starting data receiver for " + ipPort);
+                
+                var metadata = new ClientMetadata(context, webSocket, tokenSource);
+                Clients.Add(metadata);
 
 #pragma warning disable CS4014
-                    Task.Run(() => ClientConnected?.Invoke(this, new ClientConnectedEventArgs(md, context.Request)))
-                        .ConfigureAwait(false);
+                Task.Run(() => ClientConnected?.Invoke(this, new ClientConnectedEventArgs(metadata, context.Request)))
+                    .ConfigureAwait(false);
 #pragma warning restore CS4014
-                    await DataReceiver(md);
-                }
+                await DataReceiver(metadata);
             }
             catch (Exception e)
             {
@@ -345,10 +337,12 @@ namespace WatsonWebsocket
 
                 Logger?.Invoke(Header + "listener exception:" + Environment.NewLine + e);
             }
+            /*
+             // TODO: Reimplement
             finally
             {
                 ServerStopped?.Invoke(this, EventArgs.Empty);
-            }
+            }*/
         }
         
         private async Task DataReceiver(ClientMetadata md)
@@ -438,13 +432,13 @@ namespace WatsonWebsocket
             }
         }
  
-        private async Task<bool> MessageWriteAsync(ClientMetadata md, ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken cancellationToken)
+        private async Task<bool> MessageWriteAsync(ClientMetadata md, ArraySegment<byte> data, WebSocketMessageType msgType, CancellationToken token)
         {
             var header = "[WatsonWsServer " + md.IpPort + "] ";
 
             var tokens = new CancellationToken[3];
-            tokens[0] = token;
-            tokens[1] = cancellationToken;
+            tokens[0] = cancellationToken;
+            tokens[1] = token;
             tokens[2] = md.TokenSource.Token;
 
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(tokens);
@@ -471,11 +465,11 @@ namespace WatsonWebsocket
             }
             catch (TaskCanceledException)
             {
-                if (this.token.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "server canceled");
                 }
-                else if (cancellationToken.IsCancellationRequested)
+                else if (token.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "message send canceled");
                 }
@@ -486,11 +480,11 @@ namespace WatsonWebsocket
             }
             catch (OperationCanceledException)
             {
-                if (this.token.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "canceled");
                 }
-                else if (cancellationToken.IsCancellationRequested)
+                else if (token.IsCancellationRequested)
                 {
                     Logger?.Invoke(header + "message send canceled");
                 }
