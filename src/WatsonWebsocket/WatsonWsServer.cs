@@ -82,7 +82,7 @@ namespace WatsonWebsocket
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
         public WatsonWsServer(int port = 9000, bool ssl = false, string? certificatePath = default,
-                                string? keyPath = default, params string[] hostnames)
+                                string? keyPath = default, LogLevel? logLevel = null, params string[] hostnames)
         {
             if (port < 0) throw new ArgumentOutOfRangeException(nameof(port));
 
@@ -124,7 +124,7 @@ namespace WatsonWebsocket
                         app.Use(AcceptConnectionsAsync);
                     });
                 })
-                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
+                .ConfigureLogging(logging => logging.SetMinimumLevel(logLevel ?? LogLevel.None))
                 .Build();
 
             tokenSource = new CancellationTokenSource();
@@ -138,7 +138,7 @@ namespace WatsonWebsocket
         /// By default, Watson Websocket will listen on http://localhost:9000/.
         /// </summary>
         /// <param name="uri">URI which socket will listen upon.</param>
-        public WatsonWsServer(Uri uri) : this(uri.Port, uri.Scheme is "wss" or "https", null, null, uri.Host) { }
+        public WatsonWsServer(Uri uri) : this(uri.Port, uri.Scheme is "wss" or "https", null, null, null, uri.Host) { }
         
         /// <summary>
         /// Initialises watson websocket server with a listener port and hostname.
@@ -147,7 +147,7 @@ namespace WatsonWebsocket
         /// </summary>
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="hostname">The hostnames or IP addresses upon which to listen.</param>
-        public WatsonWsServer(int port, params string[] hostname) : this(port, false, null, null, hostname) { }
+        public WatsonWsServer(int port, params string[] hostname) : this(port, false, null, null, null, hostname) { }
 
         /// <summary>
         /// Tear down the server and dispose of background workers.
