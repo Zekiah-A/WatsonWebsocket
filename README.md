@@ -1,4 +1,4 @@
-### ⚠️ An improved version of watson websocket, that allows for SSL/HTTPS on any OS with ASP.Net kestrel, clean and safe .Net 7 code and proper unique way to identify clients, for real world implementations.
+### ⚠️ An improved version of watson websocket, that allows for SSL/HTTPS on any OS with ASP.Net Kestrel, clean and safe .Net 7 code and proper unique way to identify clients, for real world implementations.
 
 ![alt tag](https://github.com/jchristn/watsonwebsocket/blob/master/assets/watson.ico)
 
@@ -21,7 +21,7 @@ A test project for both client (```TestClient```) and server (```TestServer```) 
 A test project that spawns a server and client and exchanges messages can be found here: https://github.com/jchristn/watsonwebsockettest
 
 ## ⚠️ Supported Operating Systems
-***WatsonWebsocketPlus works on all operating systems compatible with Microsoft's ASP.Net Kestrel. Learn more at !(Microsoft ASP.NET Kestrel docs)** 
+***WatsonWebsocketPlus works on all operating systems compatible with Microsoft's ASP.Net Kestrel. Learn more at [Microsoft ASP.NET  docs](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel?view=aspnetcore-7.0)** 
 
 ## ⚠️ SSL
 ***With WatsonWebsocketPlus, just pass the certificate and key (usually cert.pem & fullchain.pem) paths into the Watson constructor, with ssl set to true, and watson will handle everything for you. It's that easy!***
