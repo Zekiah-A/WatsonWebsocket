@@ -11,10 +11,8 @@ namespace WatsonWebsocket;
 /// </summary>
 public class ClientMetadata
 { 
-    public string IpPort => ip + ":" + port;
-    /*public WebSocketContext WsContext { get; }*/
+    public string IpPort => ip + ":" + port; 
     public HttpContext HttpContext { get; }
-    
     internal readonly WebSocket Ws;
     internal readonly CancellationTokenSource TokenSource;
     internal readonly SemaphoreSlim SendLock = new(1);
@@ -22,12 +20,11 @@ public class ClientMetadata
     private readonly string ip;
     private readonly int port;
 
-    internal ClientMetadata(HttpContext httpContext, WebSocket ws, /*WebSocketContext wsContext,*/ CancellationTokenSource tokenSource)
+    internal ClientMetadata(HttpContext httpContext, WebSocket ws, CancellationTokenSource tokenSource)
     {
-        HttpContext = httpContext ?? throw new ArgumentNullException(nameof(httpContext));
-        Ws = ws ?? throw new ArgumentNullException(nameof(ws));
-        /*WsContext = wsContext ?? throw new ArgumentNullException(nameof(wsContext));*/
-        TokenSource = tokenSource ?? throw new ArgumentNullException(nameof(tokenSource)); 
+        HttpContext = httpContext;
+        Ws = ws;
+        TokenSource = tokenSource; 
         ip = HttpContext.Connection.RemoteIpAddress!.ToString();
         port = HttpContext.Connection.RemotePort;
     } 

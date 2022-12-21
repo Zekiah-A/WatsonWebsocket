@@ -25,7 +25,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// Enable or disable statistics.
         /// </summary>
-        public bool EnableStatistics { get; set; } = true;
+        public bool EnableStatistics { get; set; } = false;
 
         /// <summary>
         /// Event fired when a client connects.
@@ -36,12 +36,7 @@ namespace WatsonWebsocket
         /// Event fired when a client disconnects.
         /// </summary>
         public event EventHandler<ClientDisconnectedEventArgs>? ClientDisconnected = (_, _) => {};
-
-        /// <summary>
-        /// Event fired when the server stops.
-        /// </summary>
-        public event EventHandler? ServerStopped;
-
+        
         /// <summary>
         /// Event fired when a message is received.
         /// </summary>
@@ -78,9 +73,12 @@ namespace WatsonWebsocket
         /// Be sure to call 'Start()' to start the server.
         /// By default, Watson Websocket will listen on http://localhost:9000/.
         /// </summary>
+        /// <param name="logLevel">Level of console logging done by the kestrel HTTP</param>
         /// <param name="hostnames">The hostnames or IP addresses upon which to listen.</param>
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="certificatePath">Path to PEM certificate file</param>
+        /// <param name="keyPath">Path to PEM key file</param>
         public WatsonWsServer(int port = 9000, bool ssl = false, string? certificatePath = default,
                                 string? keyPath = default, LogLevel? logLevel = null, params string[] hostnames)
         {
@@ -92,7 +90,7 @@ namespace WatsonWebsocket
                 else listenerPrefixes.Add("http://" + hostname + ":" + port + "/");
             }
 
-            X509Certificate2? x509 = default;
+            X509Certificate2? x509 = null;
             if (ssl && Path.Exists(certificatePath) && Path.Exists(keyPath))
             {
                 var certPem = File.ReadAllText("certificatePath");
@@ -126,7 +124,7 @@ namespace WatsonWebsocket
                 })
                 .ConfigureLogging(logging => logging.SetMinimumLevel(logLevel ?? LogLevel.None))
                 .Build();
-
+            
             tokenSource = new CancellationTokenSource();
             Clients = new List<ClientMetadata>();
             cancellationToken = tokenSource.Token;
@@ -194,7 +192,7 @@ namespace WatsonWebsocket
         /// <summary>
         /// Stop accepting new connections.
         /// </summary>
-        public async void StopAsync(CancellationToken token = default)
+        public async Task StopAsync(CancellationToken token = default)
         {
             Logger?.Invoke(Header + "stopping");
             await listener.StopAsync(token);
@@ -209,7 +207,6 @@ namespace WatsonWebsocket
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
         public Task<bool> SendAsync(ClientMetadata client, string data, CancellationToken token = default)
         {
-            if (string.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
             return MessageWriteAsync(client, new ArraySegment<byte>(Encoding.UTF8.GetBytes(data)), WebSocketMessageType.Text, token);
         }
 
@@ -246,7 +243,8 @@ namespace WatsonWebsocket
         /// <param name="msgType">Web socket message type.</param>
         /// <param name="token">Cancellation cancellationToken allowing for termination of this request.</param>
         /// <returns>Task with Boolean indicating if the message was sent successfully.</returns>
-        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data, WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
+        public Task<bool> SendAsync(ClientMetadata client, ArraySegment<byte> data,
+            WebSocketMessageType msgType = WebSocketMessageType.Binary, CancellationToken token = default)
         {
             if (data.Array == null || data.Count < 1) throw new ArgumentNullException(nameof(data));
             return MessageWriteAsync(client, data, msgType, token);
@@ -314,7 +312,7 @@ namespace WatsonWebsocket
                     Logger?.Invoke(Header + "non-websocket request rejected from " + ipPort);
                     context.Response.StatusCode = 400;
                     context.Connection.RequestClose();
-                    return;  //continue;
+                    return;
                 }
 
                 Logger?.Invoke(Header + "starting data receiver for " + ipPort);
@@ -334,12 +332,6 @@ namespace WatsonWebsocket
 
                 Logger?.Invoke(Header + "listener exception:" + Environment.NewLine + e);
             }
-            /*
-             // TODO: Reimplement
-            finally
-            {
-                ServerStopped?.Invoke(this, EventArgs.Empty);
-            }*/
         }
         
         private async Task DataReceiver(ClientMetadata md)

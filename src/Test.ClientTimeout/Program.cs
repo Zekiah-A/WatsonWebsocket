@@ -239,7 +239,7 @@ internal static class Program
     {
         var msg = "(null)";
         if (args.Data.Count > 0) msg = Encoding.UTF8.GetString(args.Data.Array, 0, args.Data.Count);
-        Console.WriteLine(args.MessageType.ToString() + " from server: " + msg);
+        Console.WriteLine(args.MessageType + " from server: " + msg);
     }
 
     private static void ServerConnected(object? sender, EventArgs args)

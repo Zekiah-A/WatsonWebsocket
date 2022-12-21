@@ -46,11 +46,6 @@ internal static class Program
             {
                 serverStats.AddRecv(e.Data.Count);
             };
-
-            server.ServerStopped += (s, e) =>
-            {
-                Console.WriteLine("*** Server stopped: ");
-            };
             
             server.Start();
 
@@ -64,8 +59,7 @@ internal static class Program
             while (true)
             {
                 Task.Delay(1000).Wait();
-                var connected = 0;
-                connected = server.Clients.Count;
+                var connected = server.Clients.Count;
                 if (connected == NumClients) break;
                 Console.WriteLine(connected + " of " + NumClients + " connected, waiting");
             }
@@ -98,7 +92,7 @@ internal static class Program
             Console.WriteLine("  " + serverStats);
             Console.WriteLine("");
             Console.WriteLine("Client statistics");
-            foreach (var stats in ClientStats) Console.WriteLine("  " + stats.ToString());
+            foreach (var stats in ClientStats) Console.WriteLine("  " + stats);
             Console.WriteLine("");
         }
     }
@@ -144,7 +138,7 @@ internal static class Program
         {
             Task.Delay(sendDelay).Wait();
             client.SendAsync(msgData).Wait();
-            stats.AddSent(msgData.Length);
+            if (msgData != null) stats.AddSent(msgData.Length);
         }
 
         while (stats.MsgRecv < MessagesPerClient)
@@ -152,7 +146,7 @@ internal static class Program
             Task.Delay(1000).Wait();
         }
 
-        Console.WriteLine("Client exiting: " + stats.ToString());
+        Console.WriteLine("Client exiting: " + stats);
         ClientStats.Add(stats);
     }
 
@@ -160,20 +154,16 @@ internal static class Program
     {
         var ret = "";
         if (numChar < 1) return null;
-        var valid = 0;
         var random = new Random((int)DateTime.Now.Ticks);
-        var num = 0;
 
         for (var i = 0; i < numChar; i++)
         {
-            num = 0;
-            valid = 0;
+            var num = 0;
+            var valid = 0;
             while (valid == 0)
             {
                 num = random.Next(126);
-                if ((num > 47 && num < 58) ||
-                    (num > 64 && num < 91) ||
-                    (num > 96 && num < 123))
+                if (num is > 47 and < 58 or > 64 and < 91 or > 96 and < 123)
                 {
                     valid = 1;
                 }
@@ -188,42 +178,26 @@ internal static class Program
     {
         Console.Write(question);
 
-        if (yesDefault) Console.Write(" [Y/n]? ");
-        else Console.Write(" [y/N]? ");
+        Console.Write(yesDefault ? " [Y/n]? " : " [y/N]? ");
 
         var userInput = Console.ReadLine();
 
         if (string.IsNullOrEmpty(userInput))
         {
-            if (yesDefault) return true;
-            return false;
+            return yesDefault;
         }
 
         userInput = userInput.ToLower();
 
         if (yesDefault)
         {
-            if (
-                string.Compare(userInput, "n") == 0
-                || string.Compare(userInput, "no") == 0
-            )
-            {
-                return false;
-            }
-
-            return true;
+            return string.CompareOrdinal(userInput, "n") != 0 
+                   && string.CompareOrdinal(userInput, "no") != 0;
         }
         else
         {
-            if (
-                string.Compare(userInput, "y") == 0
-                || string.Compare(userInput, "yes") == 0
-            )
-            {
-                return true;
-            }
-
-            return false;
+            return string.CompareOrdinal(userInput, "y") == 0
+                   || string.CompareOrdinal(userInput, "yes") == 0;
         }
     }
 
@@ -242,14 +216,11 @@ internal static class Program
 
             var userInput = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(userInput))
-            {
-                if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
-                if (allowNull) return null;
-                else continue;
-            }
+            if (!string.IsNullOrEmpty(userInput)) return userInput;
+            if (!string.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
+            if (allowNull) return null;
+            else continue;
 
-            return userInput;
         }
     }
 
@@ -267,31 +238,22 @@ internal static class Program
                 return defaultAnswer;
             }
 
-            var ret = 0;
-            if (!int.TryParse(userInput, out ret))
+            if (!int.TryParse(userInput, out var ret))
             {
                 Console.WriteLine("Please enter a valid integer.");
                 continue;
             }
 
-            if (ret == 0)
+            switch (ret)
             {
-                if (allowZero)
-                {
+                case 0 when allowZero:
                     return 0;
-                }
-            }
-
-            if (ret < 0)
-            {
-                if (positiveOnly)
-                {
+                case < 0 when positiveOnly:
                     Console.WriteLine("Please enter a value greater than zero.");
                     continue;
-                }
+                default:
+                    return ret;
             }
-
-            return ret;
         }
     }
 }
