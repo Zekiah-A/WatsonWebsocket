@@ -93,8 +93,8 @@ namespace WatsonWebsocket
             X509Certificate2? x509 = null;
             if (ssl && Path.Exists(certificatePath) && Path.Exists(keyPath))
             {
-                var certPem = File.ReadAllText("certificatePath");
-                var keyPem = File.ReadAllText("keyPath");
+                var certPem = File.ReadAllText(certificatePath);
+                var keyPem = File.ReadAllText(keyPath);
                 x509 = X509Certificate2.CreateFromPem(certPem, keyPem);
             }
 
@@ -110,12 +110,11 @@ namespace WatsonWebsocket
                         foreach (var prefix in listenerPrefixes)
                         {
                             options.Listen(IPEndPoint.Parse(prefix), listenOptions =>
-                            {
-                                listenOptions.UseHttps(x509);
-                            });
+                                listenOptions.UseHttps(x509)
+                            );
                         }
                     });
-                    
+
                     webBuilder.Configure(app =>
                     {
                         app.UseWebSockets();
