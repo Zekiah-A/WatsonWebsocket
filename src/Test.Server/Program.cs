@@ -97,7 +97,7 @@ internal static class Program
                     break;
                 }
                 case "stats":
-                    Console.WriteLine(server.Stats?.ToString());
+                    Console.WriteLine(server.StatisticsLogger?.ToString());
                     break;
 
                 case "send":
