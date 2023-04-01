@@ -10,20 +10,20 @@
     <PackageProjectUrl>https://github.com/jchristn/WatsonWebsocket</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jchristn/WatsonWebsocket</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
-    <PackageLicenseUrl></PackageLicenseUrl>
+    <PackageLicenseUrl>https://github.com/Zekiah-A/WatsonWebsocketPlus/blob/plus/LICENSE.md</PackageLicenseUrl>
     <PackageTags>websocket message messaging frame framing web socket rpc api</PackageTags>
     <PackageReleaseNotes>Breaking change, allocation-free receive, thank you @joreg</PackageReleaseNotes>
-    <PackageIconUrl></PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/Zekiah-A/WatsonWebsocketPlus/plus/assets/watson.png</PackageIconUrl>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageIcon>watson.png</PackageIcon>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 	
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net7.0|AnyCPU'">
 	<DocumentationFile>WatsonWebsocket.xml</DocumentationFile>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net7.0|AnyCPU'">
 	<DocumentationFile>WatsonWebsocket.xml</DocumentationFile>
   </PropertyGroup>
 
@@ -32,13 +32,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="assets\watson.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
     <None Include="LICENSE.md">
       <Pack>True</Pack>
-      <PackagePath></PackagePath>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

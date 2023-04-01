@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -86,10 +87,10 @@ public sealed class WatsonWsServer : IDisposable
 
         foreach (var hostname in hostnames)
         {
-            listenerPrefixes.Add(ssl ? "wss://" : "ws://" + hostname + port);
+            listenerPrefixes.Add(ssl ? "https://" : "http://" + hostname + port);
         }
 
-        X509Certificate2? generatedCertificate = null;
+        var generatedCertificate = (X509Certificate2?) null;
         if (ssl && Path.Exists(certificatePath) && Path.Exists(keyPath))
         {
             var certPem = File.ReadAllText(certificatePath);
@@ -102,21 +103,22 @@ public sealed class WatsonWsServer : IDisposable
             {
                 webBuilder.UseUrls(listenerPrefixes.ToArray());
                     
-                webBuilder.UseKestrel(options =>
+                webBuilder.ConfigureKestrel(options =>
                 {
                     if (!ssl || generatedCertificate is null)
                     {
                         return;
                     }
                         
-                    foreach (var prefix in listenerPrefixes)
+                    options.ListenLocalhost(port, listenOptions =>
                     {
-                        options.Listen(IPEndPoint.Parse(prefix),listenOptions =>
+                        var httpsOptions = new HttpsConnectionAdapterOptions
                         {
-                            listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
-                            listenOptions.UseHttps(generatedCertificate);
-                        });
-                    }
+                            ServerCertificate = generatedCertificate
+                        };
+                            
+                        listenOptions.UseHttps(httpsOptions);
+                    });
                 });
                     
                 webBuilder.Configure(app =>
@@ -127,7 +129,7 @@ public sealed class WatsonWsServer : IDisposable
             })
             .ConfigureLogging(logging => logging.SetMinimumLevel(logLevel ?? LogLevel.None))
             .Build();
-            
+
         tokenSource = new CancellationTokenSource();
         Clients = new List<ClientMetadata>();
         cancellationToken = tokenSource.Token;
