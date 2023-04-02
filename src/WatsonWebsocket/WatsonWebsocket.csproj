@@ -10,7 +10,6 @@
     <PackageProjectUrl>https://github.com/jchristn/WatsonWebsocket</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jchristn/WatsonWebsocket</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
-    <PackageLicenseUrl>https://github.com/Zekiah-A/WatsonWebsocketPlus/blob/plus/LICENSE.md</PackageLicenseUrl>
     <PackageTags>websocket message messaging frame framing web socket rpc api</PackageTags>
     <PackageReleaseNotes>Breaking change, allocation-free receive, thank you @joreg</PackageReleaseNotes>
     <PackageIconUrl>https://raw.githubusercontent.com/Zekiah-A/WatsonWebsocketPlus/plus/assets/watson.png</PackageIconUrl>
