@@ -13,19 +13,13 @@
     <PackageTags>websocket message messaging frame framing web socket rpc api</PackageTags>
     <PackageReleaseNotes>Breaking change, allocation-free receive, thank you @joreg</PackageReleaseNotes>
     <PackageIconUrl>https://raw.githubusercontent.com/Zekiah-A/WatsonWebsocketPlus/plus/assets/watson.png</PackageIconUrl>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <PackageIcon>watson.png</PackageIcon>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 	
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net7.0|AnyCPU'">
+  <PropertyGroup>
 	<DocumentationFile>WatsonWebsocket.xml</DocumentationFile>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net7.0|AnyCPU'">
-	<DocumentationFile>WatsonWebsocket.xml</DocumentationFile>
-  </PropertyGroup>
-
+  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
