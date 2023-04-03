@@ -87,7 +87,7 @@ public sealed class WatsonWsServer : IDisposable
 
         foreach (var hostname in hostnames)
         {
-            listenerPrefixes.Add(ssl ? "https://" : "http://" + hostname + port);
+            listenerPrefixes.Add(ssl ? "https://" : "http://" + hostname + ":" + port);
         }
 
         var generatedCertificate = (X509Certificate2?) null;
