@@ -1,38 +1,30 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <Version>3.0.2</Version>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Authors>Joel Christner</Authors>
+        <Description>WatsonWebsocket is the EASIEST and FASTEST way to build client and server applications that rely on messaging using websockets.  It's.  Really.  Easy.</Description>
+        <Copyright>(c)2021 Joel Christner</Copyright>
+        <PackageProjectUrl>https://github.com/jchristn/WatsonWebsocket</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/jchristn/WatsonWebsocket</RepositoryUrl>
+        <RepositoryType>Github</RepositoryType>
+        <PackageTags>websocket message messaging frame framing web socket rpc api</PackageTags>
+        <PackageReleaseNotes>Breaking change, allocation-free receive, thank you @joreg</PackageReleaseNotes>
+        <PackageIconUrl>https://raw.githubusercontent.com/Zekiah-A/WatsonWebsocketPlus/plus/assets/watson.png</PackageIconUrl>
+        <DocumentationFile>WatsonWebsocket.xml</DocumentationFile>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <Version>3.0.2</Version>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Authors>Joel Christner</Authors>
-    <Description>WatsonWebsocket is the EASIEST and FASTEST way to build client and server applications that rely on messaging using websockets.  It's.  Really.  Easy.</Description>
-    <Copyright>(c)2021 Joel Christner</Copyright>
-    <PackageProjectUrl>https://github.com/jchristn/WatsonWebsocket</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/jchristn/WatsonWebsocket</RepositoryUrl>
-    <RepositoryType>Github</RepositoryType>
-    <PackageTags>websocket message messaging frame framing web socket rpc api</PackageTags>
-    <PackageReleaseNotes>Breaking change, allocation-free receive, thank you @joreg</PackageReleaseNotes>
-    <PackageIconUrl>https://raw.githubusercontent.com/Zekiah-A/WatsonWebsocketPlus/plus/assets/watson.png</PackageIconUrl>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-	
-  <PropertyGroup>
-	<DocumentationFile>WatsonWebsocket.xml</DocumentationFile>
-  </PropertyGroup>
-  
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Https" Version="2.2.0" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="LICENSE.md">
-      <Pack>True</Pack>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Https" Version="2.2.0" />
-  </ItemGroup>
-	
+    <ItemGroup>
+        <None Include="LICENSE.md">
+            <Pack>True</Pack>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
 </Project>

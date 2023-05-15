@@ -27,17 +27,17 @@ public sealed class WatsonWsServer : IDisposable
     /// <summary>
     /// Event fired when a client connects.
     /// </summary>
-    public event EventHandler<ClientConnectedEventArgs>? ClientConnected = (_, _) => {};
+    public event EventHandler<ClientConnectedEventArgs>? ClientConnected;
 
     /// <summary>
     /// Event fired when a client disconnects.
     /// </summary>
-    public event EventHandler<ClientDisconnectedEventArgs>? ClientDisconnected = (_, _) => {};
+    public event EventHandler<ClientDisconnectedEventArgs>? ClientDisconnected;
         
     /// <summary>
     /// Event fired when a message is received.
     /// </summary>
-    public event EventHandler<MessageReceivedEventArgs>? MessageReceived = (_, _) => {};
+    public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
         
     /// <summary>
     /// Method to invoke when sending a log message.
@@ -75,7 +75,7 @@ public sealed class WatsonWsServer : IDisposable
     public WatsonWsServer(int port = 9000, bool ssl = false, string? certificatePath = default,
         string? keyPath = default, LogLevel? logLevel = null, params string[] hostnames)
     {
-        if (port < 0)
+        if (port is < 0 or > 65535)
         {
             throw new ArgumentOutOfRangeException(nameof(port));
         }
@@ -259,11 +259,17 @@ public sealed class WatsonWsServer : IDisposable
     /// Forcefully disconnect a client.
     /// </summary>
     /// <param name="client">The client being disconnected.</param>
-    public void DisconnectClient(ClientMetadata client)
+    /// <param name="description">Websocket close frame description/disconnection reason</param>
+    public void DisconnectClient(ClientMetadata client, string description = "")
     {
-        client.WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token).Wait(cancellationToken);
-        client.TokenSource.Cancel();
-        client.WebSocket.Dispose();
+        try
+        {
+            client.WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, description, client.TokenSource.Token)
+                .Wait(cancellationToken);
+            client.TokenSource.Cancel();
+            client.WebSocket.Dispose();
+        }
+        catch (TaskCanceledException _) { }
     }
         
     /// <summary>
@@ -282,16 +288,20 @@ public sealed class WatsonWsServer : IDisposable
     /// <param name="disposing">Disposing.</param>
     private void Dispose(bool disposing)
     {
-        if (!disposing) return;
-        foreach (var client in Clients)
+        try
         {
-            client.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token);
-            client.TokenSource.Cancel();
-        }
+            if (!disposing) return;
+            foreach (var client in Clients)
+            {
+                client.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token);
+                client.TokenSource.Cancel();
+            }
 
-        listener.StopAsync(cancellationToken);
-        listener.Dispose();
-        tokenSource.Cancel();
+            listener.StopAsync(cancellationToken);
+            listener.Dispose();
+            tokenSource.Cancel();
+        }
+        catch (TaskCanceledException _) {}
     }
         
     private async Task AcceptConnectionsAsync(HttpContext context, RequestDelegate next)
@@ -307,7 +317,7 @@ public sealed class WatsonWsServer : IDisposable
             if (!context.WebSockets.IsWebSocketRequest)
             {
                 Logger?.Invoke(Header + "non-websocket request rejected from " + ipPort);
-                context.Response.StatusCode = 400;
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Connection.RequestClose();
                 return;
             }
@@ -339,7 +349,6 @@ public sealed class WatsonWsServer : IDisposable
 
         try
         {
-                
             while (true)
             {
                 var message = await MessageReadAsync(metadata, buffer).ConfigureAwait(false);
