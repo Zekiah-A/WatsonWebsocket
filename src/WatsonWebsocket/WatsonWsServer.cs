@@ -268,6 +268,9 @@ public sealed class WatsonWsServer : IDisposable
             {
                 await client.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, description, CancellationToken.None);
             }
+            
+            client.TokenSource.Cancel();
+            client.WebSocket.Dispose();
         }
         catch (TaskCanceledException _) { }
     }
