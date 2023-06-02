@@ -260,14 +260,14 @@ public sealed class WatsonWsServer : IDisposable
     /// </summary>
     /// <param name="client">The client being disconnected.</param>
     /// <param name="description">Websocket close frame description/disconnection reason</param>
-    public void DisconnectClient(ClientMetadata client, string description = "")
+    public async Task DisconnectClientAsync(ClientMetadata client, string description = "")
     {
         try
         {
-            client.WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, description, client.TokenSource.Token)
-                .Wait(cancellationToken);
-            client.TokenSource.Cancel();
-            client.WebSocket.Dispose();
+            if (client.WebSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+            {
+                await client.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, description, CancellationToken.None);
+            }
         }
         catch (TaskCanceledException _) { }
     }

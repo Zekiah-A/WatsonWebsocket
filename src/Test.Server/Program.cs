@@ -125,7 +125,7 @@ internal static class Program
                 case "kill":
                     if (splitInput.Length != 2) break;
                     if (server.GetClientFromIpPort(splitInput[1]) is null) return;
-                    server.DisconnectClient(server.GetClientFromIpPort(splitInput[1])!);
+                    server.DisconnectClientAsync(server.GetClientFromIpPort(splitInput[1])!);
                     break;
 
                 default:
