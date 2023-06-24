@@ -268,7 +268,7 @@ public sealed class WatsonWsServer : IDisposable
             {
                 await client.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, description, CancellationToken.None);
             }
-            
+
             client.TokenSource.Cancel();
             client.WebSocket.Dispose();
         }
@@ -294,10 +294,15 @@ public sealed class WatsonWsServer : IDisposable
         try
         {
             if (!disposing) return;
+            
             foreach (var client in Clients)
             {
-                client.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token);
-                client.TokenSource.Cancel();
+                try
+                {
+                    client.WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", client.TokenSource.Token);
+                    client.TokenSource.Cancel();
+                }
+                catch(TaskCanceledException _) {}
             }
 
             listener.StopAsync(cancellationToken);
