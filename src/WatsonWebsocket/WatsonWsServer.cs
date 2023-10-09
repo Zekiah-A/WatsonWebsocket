@@ -360,9 +360,13 @@ public sealed class WatsonWsServer : IDisposable
             while (true)
             {
                 var message = await MessageReadAsync(metadata, buffer).ConfigureAwait(false);
-                    
-                StatisticsLogger?.IncrementReceivedMessages();
-                StatisticsLogger?.AddReceivedBytes(message.Data.Count);
+                
+                if (StatisticsLogger is not null)
+                {
+                    StatisticsLogger.IncrementReceivedMessages();
+                    StatisticsLogger.AddReceivedBytes(message.Data.Count);
+                }
+
                 MessageReceived?.Invoke(this, message);
             }
         }

@@ -4,10 +4,6 @@ Thank you for your interest in contributing!
 
 The following is a set of guidelines for contributing to our project on Github. These are mostly guidelines, not rules. 
 
-## Code of Conduct
-
-This project and everyone participating in it is governed by the Code of Conduct.  By participating, you are expected to uphold this code. Please report unacceptable behavior to project moderators.
-
 ## Pull Requests
 
 Please follow these guidelines when submitting pull requests (PRs):

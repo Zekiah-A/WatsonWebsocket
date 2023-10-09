@@ -87,19 +87,38 @@ namespace WatsonWebsocket
         /// <returns></returns>
         public override string ToString()
         {
-            var ret =
-                "--- Statistics ---" + Environment.NewLine +
-                "    Started     : " + StartTime + Environment.NewLine +
-                "    Uptime      : " + UpTime + Environment.NewLine +
-                "    Received    : " + Environment.NewLine +
-                "       Bytes    : " + ReceivedBytes + Environment.NewLine +
-                "       Messages : " + ReceivedMessages + Environment.NewLine +
-                "       Average  : " + ReceivedMessageSizeAverage + " bytes" + Environment.NewLine +
-                "    Sent        : " + Environment.NewLine +
-                "       Bytes    : " + SentBytes + Environment.NewLine +
-                "       Messages : " + SentMessages + Environment.NewLine +
-                "       Average  : " + SentMessageSizeAverage + " bytes" + Environment.NewLine;
-            return ret;
+            var builder = new StringBuilder();
+            builder.AppendLine("--- Statistics ---");
+            builder.Append("    Started     : ")
+                .Append(StartTime)
+                .AppendLine();
+            builder.Append("    Uptime      : ")
+                .Append(UpTime)
+                .AppendLine();
+            builder.AppendLine("    Received    : ")
+            builder.Append("       Bytes    : ")
+                .Append(ReceivedBytes);
+                .AppendLine();
+            builder.Append( "       Messages : ")
+                .Append(ReceivedMessages)
+                .AppendLine();
+            builder.Append("       Average  : ")
+                .Append(ReceivedMessageSizeAverage)
+                .Append(" bytes")
+                .AppendLine();
+            builder.AppendLine("    Sent        : ");
+            builder.Append("       Bytes    : ")
+                .Append(SentBytes)
+                .AppendLine();
+            builder.Append("       Messages : ")
+                .Append(SentMessages)
+                .AppendLine();
+            builder.Append("       Average  : ")
+                .Append(SentMessageSizeAverage)
+                .Append(" bytes")
+                .AppendLine();
+
+            return builder.ToString();
         }
 
         /// <summary>

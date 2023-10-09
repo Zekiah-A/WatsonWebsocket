@@ -36,17 +36,17 @@ server.ClientDisconnected += ClientDisconnected;
 server.MessageReceived += MessageReceived; 
 server.Start();
 
-static void ClientConnected(object sender, ClientConnectedEventArgs args) 
+static void ClientConnected(object? sender, ClientConnectedEventArgs args) 
 {
     Console.WriteLine("Client connected: " + args.IpPort);
 }
 
-static void ClientDisconnected(object sender, ClientDisconnectedEventArgs args) 
+static void ClientDisconnected(object? sender, ClientDisconnectedEventArgs args) 
 {
     Console.WriteLine("Client disconnected: " + args.IpPort);
 }
 
-static void MessageReceived(object sender, MessageReceivedEventArgs args) 
+static void MessageReceived(object? sender, MessageReceivedEventArgs args) 
 { 
     Console.WriteLine("Message received from " + args.IpPort + ": " + Encoding.UTF8.GetString(args.Data));
 }
@@ -62,17 +62,17 @@ client.ServerDisconnected += ServerDisconnected;
 client.MessageReceived += MessageReceived; 
 client.Start(); 
 
-static void MessageReceived(object sender, MessageReceivedEventArgs args) 
+static void MessageReceived(object? sender, MessageReceivedEventArgs args) 
 {
     Console.WriteLine("Message from server: " + Encoding.UTF8.GetString(args.Data));
 }
 
-static void ServerConnected(object sender, EventArgs args) 
+static void ServerConnected(object? sender, EventArgs args) 
 {
     Console.WriteLine("Server connected");
 }
 
-static void ServerDisconnected(object sender, EventArgs args) 
+static void ServerDisconnected(object? sender, EventArgs args) 
 {
     Console.WriteLine("Server disconnected");
 }
