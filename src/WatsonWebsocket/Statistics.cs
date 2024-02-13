@@ -95,9 +95,9 @@ namespace WatsonWebsocket
             builder.Append("    Uptime      : ")
                 .Append(UpTime)
                 .AppendLine();
-            builder.AppendLine("    Received    : ")
+            builder.AppendLine("    Received    : ");
             builder.Append("       Bytes    : ")
-                .Append(ReceivedBytes);
+                .Append(ReceivedBytes)
                 .AppendLine();
             builder.Append( "       Messages : ")
                 .Append(ReceivedMessages)
